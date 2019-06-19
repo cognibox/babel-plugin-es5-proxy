@@ -1,11 +1,11 @@
 'use strict';
 
 var defaultHandler = {
-    get: function get(obj, propName) {
-        return obj[propName];
+    get: function get(propName) {
+        return object[propName];
     },
-    set: function set(obj, propName, val) {
-        obj[propName] = val;
+    set: function set(propName, val) {
+        object[propName] = val;
     }
 };
 
@@ -15,19 +15,19 @@ var Proxy = function Proxy(target, handler) {
     this.set = handler.set || defaultHandler.set;
 };
 
-Proxy.prototype.getTrap = function (propertyName) {
-    return this.get(this.target, propertyName);
-};
+// Proxy.prototype.getTrap = function (propertyName) {
+//     return this.get(this.target, propertyName);
+// };
 
-Proxy.prototype.setTrap = function (propertyName, value) {
-    this.set(this.target, propertyName, value);
-};
+// Proxy.prototype.setTrap = function (propertyName, value) {
+//     this.set(this.target, propertyName, value);
+// };
 
 function globalGetInterceptor(object, propertyName) {
     if (object instanceof Proxy) {
-        return object.getTrap(propertyName);
+        return object.get(object.target, propertyName);
     }
-    var value = defaultHandler.get(object, propertyName);
+    var value = object[propertyName];
     if (typeof value === 'function') {
         return value.bind(object);
     } else {
@@ -39,5 +39,9 @@ function globalSetInterceptor(object, propertyName, value) {
     if (object instanceof Proxy) {
         return object.setTrap(propertyName, value);
     }
-    defaultHandler.set(object, propertyName, value);
+    object[propertyName] = value;
 }
+
+
+
+globalGetInterceptor(this, 'stuff')();
