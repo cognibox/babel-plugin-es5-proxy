@@ -12,8 +12,15 @@ function addRuntimeToFile(path) {
   );
 }
 
+function computeProperty(property, node) {
+  if (property.type === 'Identifier' && !node.computed)
+    return types.stringLiteral(property.name);
 
-export default ({ types }) => {
+  return computedProperty = property;
+}
+
+
+module.exports = ({ types }) => {
   const nodes = {
     AssignmentExpression(path) {
       path.replaceWith(
@@ -21,7 +28,7 @@ export default ({ types }) => {
           types.identifier('globalSetter'),
           [
             path.node.left.object,
-            types.stringLiteral(path.node.left.property.name),
+            computeProperty(path.node.left.property, path.node),
             path.node.right,
           ],
         ),
@@ -33,10 +40,7 @@ export default ({ types }) => {
           types.identifier('globalGetter'),
           [
             path.node.object,
-            types.stringLiteral(
-              path.node.property.name,
-            ),
-          ],
+            computeProperty(path.node.property, path.node)],
         ),
       );
     },

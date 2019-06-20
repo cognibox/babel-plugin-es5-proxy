@@ -1,17 +1,17 @@
 'use strict';
 
 function defaultGet(property) {
-  return this.target[property];
+  return this[property];
 }
 
 function defaultSet(property, value) {
-  this.target[property] = value;
+  this[property] = value;
 }
 
-function Proxy(target, handlers) {
+function Proxy(target, handlers = {}) {
   this.target = target;
-  this.get = (handlers.get || defaultGet).bind(this);
-  this.set = (handlers.set || defaultSet).bind(this);
+  this.get = (handlers.get || defaultGet).bind(this.target);
+  this.set = (handlers.set || defaultSet).bind(this.target);
 };
 
 function globalGetter(object, propertyName) {
