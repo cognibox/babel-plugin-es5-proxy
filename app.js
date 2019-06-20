@@ -12,13 +12,13 @@ function addRuntimeToFile(path) {
   );
 }
 
-function computeProperty(property, node) {
-  if (property.type === 'Identifier' && !node.computed)
+function computeProperty(property, node, types) {
+  if (property.type === 'Identifier' && !node.computed) {
     return types.stringLiteral(property.name);
+  }
 
-  return computedProperty = property;
+  return property;
 }
-
 
 module.exports = ({ types }) => {
   const nodes = {
@@ -28,7 +28,7 @@ module.exports = ({ types }) => {
           types.identifier('globalSetter'),
           [
             path.node.left.object,
-            computeProperty(path.node.left.property, path.node),
+            computeProperty(path.node.left.property, path.node.left, types),
             path.node.right,
           ],
         ),
@@ -40,7 +40,8 @@ module.exports = ({ types }) => {
           types.identifier('globalGetter'),
           [
             path.node.object,
-            computeProperty(path.node.property, path.node)],
+            computeProperty(path.node.property, path.node, types)
+          ],
         ),
       );
     },
