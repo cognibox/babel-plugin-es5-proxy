@@ -15,7 +15,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
           context('when property is accessed with period', () => {
             it('should return the value', () => {
               const code = `
-                const obj = { bar: VALUE };
+                const obj = { bar: ${VALUE} };
                 obj.bar;
               `;
 
@@ -30,7 +30,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
               context('when property is a string', () => {
                 it('should return the value', () => {
                   const code = `
-                  const obj = { bar: VALUE };
+                  const obj = { bar: ${VALUE} };
                   obj['bar'];
                 `;
 
@@ -43,7 +43,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
               context('when property is a number', () => {
                 it('should return the value', () => {
                   const code = `
-                    const obj = { 0: VALUE };
+                    const obj = { 0: ${VALUE} };
                     obj[0];
                   `;
 
@@ -57,7 +57,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
             context('when property is a variable', () => {
               it('should return the value', () => {
                 const code = `
-                  const obj = { bar: VALUE };
+                  const obj = { bar: ${VALUE} };
                   const baz = 'bar';
                   obj[baz];
                 `;
@@ -71,7 +71,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
             context('when property is an arbitrary expression', () => {
               it('should return the value', () => {
                 const code = `
-                  const obj = { bar: VALUE };
+                  const obj = { bar: ${VALUE} };
                   const r = 'r';
                   const a = { _: 'a' };
                   obj['b' + a._ + r];
@@ -86,7 +86,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
             context('when object is an arbitrary expression', () => {
               it('should return the value', () => {
                 const code = `
-                  const obj = { bar: VALUE };
+                  const obj = { bar: ${VALUE} };
                   const baz = { boo: function() { return obj; } };
                   baz.boo()['bar'];
                 `;
@@ -105,7 +105,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
             context('when accessing the second with a period', () => {
               it('should return the value', () => {
                 const code = `
-                  const obj = { bar: { baz: VALUE } };
+                  const obj = { bar: { baz: ${VALUE} } };
                   obj.bar.baz
                 `;
 
@@ -119,7 +119,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
               context('when accessing the second with a literal', () => {
                 it('should return the value', () => {
                   const code = `
-                    const obj = { bar: { baz: VALUE } };
+                    const obj = { bar: { baz: ${VALUE} } };
                     obj.bar['baz']
                   `;
 
@@ -132,7 +132,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
               context('when accessing the second with a variable', () => {
                 it('should return the value', () => {
                   const code = `
-                    const obj = { bar: { baz: VALUE } };
+                    const obj = { bar: { baz: ${VALUE} } };
                     const boo = 'baz';
                     obj.bar[boo]
                   `;
@@ -150,7 +150,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
               context('when accessing the first with a literal', () => {
                 it('should return the value', () => {
                   const code = `
-                    const obj = { bar: { baz: VALUE } };
+                    const obj = { bar: { baz: ${VALUE} } };
                     obj['bar'].baz
                   `;
 
@@ -163,7 +163,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
               context('when accessing the first with a variable', () => {
                 it('should return the value', () => {
                   const code = `
-                    const obj = { bar: { baz: VALUE } };
+                    const obj = { bar: { baz: ${VALUE} } };
                     const boo = 'bar';
                     obj[boo].baz;
                   `;
@@ -180,7 +180,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
                 context('when accessing the second with a literal', () => {
                   it('should return the value', () => {
                     const code = `
-                      const obj = { bar: { baz: VALUE } };
+                      const obj = { bar: { baz: ${VALUE} } };
                       obj['bar']['baz'];
                     `;
 
@@ -193,7 +193,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
                 context('when accessing the second with a variable', () => {
                   it('should return the value', () => {
                     const code = `
-                      const obj = { bar: { baz: VALUE } };
+                      const obj = { bar: { baz: ${VALUE} } };
                       const boo = 'baz';
                       obj['bar'][boo];
                     `;
@@ -209,7 +209,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
                 context('when accessing the second with a literal', () => {
                   it('should return the value', () => {
                     const code = `
-                      const obj = { bar: { baz: VALUE } };
+                      const obj = { bar: { baz: ${VALUE} } };
                       const far = 'bar';
                       obj[far]['baz'];
                     `;
@@ -223,7 +223,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
                 context('when accessing the second with a variable', () => {
                   it('should return the value', () => {
                     const code = `
-                      const obj = { bar: { baz: VALUE } };
+                      const obj = { bar: { baz: ${VALUE} } };
                       const far = 'bar';
                       const boo = 'baz';
                       obj[far][boo];
