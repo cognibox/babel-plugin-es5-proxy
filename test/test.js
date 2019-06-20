@@ -83,7 +83,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
               });
             });
 
-            context('when object is an arbitrary expression', () => {
+            context('when object is a function', () => {
               it('should return the value', () => {
                 const code = `
                   const obj = { bar: ${VALUE} };
@@ -568,10 +568,10 @@ describe('babel-plugin-es5-proxy @medium', () => {
       context('when a setter had been defined', () => {
         it('should use the setter', () => {
           const code = `
-              const obj = new Proxy({}, { set: function(property, value) { this.bar = ${VALUE} } });
-              obj['bing'] = 'PAF';
-              obj.bar;
-            `;
+            const obj = new Proxy({}, { set: function(property, value) { this.bar = ${VALUE} } });
+            obj['bing'] = 'PAF';
+            obj.bar;
+          `;
 
           const output = buildRun(code);
 
