@@ -23,6 +23,8 @@ function computeProperty(property, node, types) {
 module.exports = ({ types }) => {
   const nodes = {
     AssignmentExpression(path) {
+      if (path.node.left.type !== 'MemberExpression') return;
+
       path.replaceWith(
         types.callExpression(
           types.identifier('globalSetter'),

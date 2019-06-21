@@ -8,6 +8,22 @@ describe('babel-plugin-es5-proxy @medium', () => {
     VALUE = Math.random();
   });
 
+  describe('regular assignment', () => {
+    context('when assigning a literal to a variable', () => {
+      it('should return the value', () => {
+        const code = `
+          let obj;
+          obj = ${VALUE};
+          obj;
+        `;
+
+        const output = buildRun(code);
+
+        expect(output).to.equal(VALUE);
+      });
+    });
+  });
+
   describe('globalGetter', () => {
     context('when accessing on regular object', () => {
       context('when property is not a function', () => {
