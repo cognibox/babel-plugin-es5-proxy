@@ -6,7 +6,8 @@
   "author": "Cognibox",
   "license": "MIT",
   "scripts": {
-    "test": "mocha"
+    "test": "mocha",
+    "lint": "./node_modules/.bin/eslint . --ext .js --quiet"
   },
   "dependencies": {
     "babel-preset-es2015": "6.3.13",
@@ -16,8 +17,10 @@
     "babel-core": "6.3.26"
   },
   "devDependencies": {
+    "eslint-config-cbx": "https://github.com/cognibox/eslint-config-cbx.git",
     "babel-register": "6.11.6",
     "chai": "^4.2.0",
+    "eslint": "^5.16.0",
     "mocha": "^6.1.4"
   }
 }

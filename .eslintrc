@@ -1,0 +1,7 @@
+{
+  "extends": "cbx",
+  "globals": {
+    "require": false,
+    "module": false
+  }
+}
