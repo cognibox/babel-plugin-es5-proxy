@@ -1,38 +1,38 @@
 'use strict';
 
 function defaultGet(property) {
-  return this[property];
+  return this[property]; //eslint-disable-line no-invalid-this
 }
 
 function defaultSet(property, value) {
-  this[property] = value;
+  this[property] = value; //eslint-disable-line no-invalid-this
 }
 
 function Proxy(target, handlers = {}) {
   this.target = target;
   this.get = (handlers.get || defaultGet).bind(this.target);
   this.set = (handlers.set || defaultSet).bind(this.target);
-};
+}
 
-function globalGetter(object, propertyName) {
-  var value, self;
+function globalGetter(object, propertyName) { // eslint-disable-line no-unused-vars
+  let target, value;
 
   if (object instanceof Proxy) {
     value = object.get(propertyName);
-    self = object.target;
+    target = object.target;
   } else {
     value = object[propertyName];
-    self = object;
+    target = object;
   }
 
   if (typeof value === 'function') {
-      return value.bind(self);
-  } else {
-      return value;
+    return value.bind(target);
   }
+
+  return value;
 }
 
-function globalSetter(object, propertyName, value) {
+function globalSetter(object, propertyName, value) { // eslint-disable-line no-unused-vars
   if (object instanceof Proxy) {
     object.set(propertyName, value);
   } else {

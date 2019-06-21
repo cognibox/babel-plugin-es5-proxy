@@ -2,14 +2,9 @@ const fs = require('fs');
 const babylon = require('babylon');
 
 function addRuntimeToFile(path) {
-  path.unshiftContainer(
-    'body',
-    babylon.parse(
-      fs.readFileSync(
-        require.resolve('./runtime.js')
-      ).toString(),
-    ).program.body
-  );
+  const code = fs.readFileSync(require.resolve('./runtime.js')).toString();
+
+  path.unshiftContainer('body', babylon.parse(code).program.body);
 }
 
 function computeProperty(property, node, types) {
@@ -25,27 +20,20 @@ module.exports = ({ types }) => {
     AssignmentExpression(path) {
       if (path.node.left.type !== 'MemberExpression') return;
 
-      path.replaceWith(
-        types.callExpression(
-          types.identifier('globalSetter'),
-          [
-            path.node.left.object,
-            computeProperty(path.node.left.property, path.node.left, types),
-            path.node.right,
-          ],
-        ),
-      );
+      const args = [
+        path.node.left.object,
+        computeProperty(path.node.left.property, path.node.left, types),
+        path.node.right,
+      ];
+
+      path.replaceWith(types.callExpression(types.identifier('globalSetter'), args));
     },
     MemberExpression(path) {
-      path.replaceWith(
-        types.callExpression(
-          types.identifier('globalGetter'),
-          [
-            path.node.object,
-            computeProperty(path.node.property, path.node, types)
-          ],
-        ),
-      );
+      const args = [
+        path.node.object,
+        computeProperty(path.node.property, path.node, types),
+      ];
+      path.replaceWith(types.callExpression(types.identifier('globalGetter'), args));
     },
   };
 

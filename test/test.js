@@ -111,7 +111,6 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
                 expect(output).to.equal(VALUE);
               });
-
             });
           });
         });
@@ -468,7 +467,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
               const output = buildRun(code);
 
-              expect(output).to.equal(VALUE + 5);
+              expect(output).to.equal(VALUE + 5); //eslint-disable-line no-magic-numbers
             });
           });
         });
@@ -621,5 +620,5 @@ function build(code) {
 }
 
 function buildRun(code) {
-  return eval(build(code).code);
+  return eval(build(code).code); // eslint-disable-line no-eval
 }
