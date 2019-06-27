@@ -24,7 +24,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
     });
   });
 
-  describe.only('globalGetter', () => {
+  describe('globalGetter', () => {
     context('when accessing on regular object', () => {
       context('when property is not a function', () => {
         context('when property is top-level', () => {
