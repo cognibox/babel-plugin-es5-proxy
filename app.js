@@ -1,5 +1,6 @@
 const fs = require('fs');
 const babylon = require('babylon');
+const thisModifierFunctions = ['apply', 'bind', 'call'];
 
 let variableIndex = 0;
 
@@ -38,7 +39,8 @@ module.exports = ({ types }) => {
     },
     CallExpression(path) {
       if (path.node.callee.name === 'globalGetter') return;
-      if (path.node.callee.type !== 'MemberExpression' || path.node.callee.property.name === 'call' || path.node.callee.property.name === 'apply') return;
+      if (path.node.callee.type !== 'MemberExpression') return;
+      if (thisModifierFunctions.includes(path.node.callee.property.name)) return;
 
       const variable = variableName();
       path.replaceWith(
@@ -76,9 +78,7 @@ module.exports = ({ types }) => {
       );
     },
     MemberExpression(path) {
-      if (path.node.property.name === 'call' || path.node.property.name === 'apply') {
-        return;
-      }
+      if (thisModifierFunctions.includes(path.node.property.name)) return;
 
       const args = [
         path.node.object,

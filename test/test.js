@@ -115,43 +115,46 @@ describe('babel-plugin-es5-proxy @medium', () => {
               context('when specifying a this', () => {
                 context('with call', () => {
                   it('should return the value', () => {
+                    const valueToAdd = Math.random();
                     const code = `
                       const thisObj = { stuff: ${VALUE} }
-                      const baz = { stuff: 5, boo: function() { return this.stuff; } };
-                      baz.boo.call(thisObj);
+                      const baz = { stuff: 5, boo: function(vv) { return this.stuff + vv; } };
+                      baz.boo.call(thisObj, ${valueToAdd});
                     `;
 
                     const output = buildRun(code);
 
-                    expect(output).to.equal(VALUE);
+                    expect(output).to.equal(VALUE + valueToAdd);
                   });
                 });
 
                 context('with apply', () => {
                   it('should return the value', () => {
+                    const valueToAdd = Math.random();
                     const code = `
                       const thisObj = { stuff: ${VALUE} }
-                      const baz = { stuff: 5, boo: function() { return this.stuff; } };
-                      baz.boo.apply(thisObj);
+                      const baz = { stuff: 5, boo: function(vv) { return this.stuff + vv; } };
+                      baz.boo.apply(thisObj, [${valueToAdd}]);
                     `;
 
                     const output = buildRun(code);
 
-                    expect(output).to.equal(VALUE);
+                    expect(output).to.equal(VALUE + valueToAdd);
                   });
                 });
 
                 context('with bind', () => {
                   it('should return the value', () => {
+                    const valueToAdd = Math.random();
                     const code = `
                       const thisObj = { stuff: ${VALUE} }
-                      const baz = { stuff: 5, boo: function() { return this.stuff; } };
-                      baz.boo.bind(thisObj)();
+                      const baz = { stuff: 5, boo: function(vv) { return this.stuff + vv; } };
+                      baz.boo.bind(thisObj)(${valueToAdd});
                     `;
 
                     const output = buildRun(code);
 
-                    expect(output).to.equal(VALUE);
+                    expect(output).to.equal(VALUE + valueToAdd);
                   });
                 });
               });
