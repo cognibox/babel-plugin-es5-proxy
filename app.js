@@ -1,6 +1,8 @@
 const fs = require('fs');
 const babylon = require('babylon');
 
+let variableIndex = 0;
+
 function addRuntimeToFile(path) {
   const code = fs.readFileSync(require.resolve('./runtime.js')).toString();
 
@@ -13,6 +15,11 @@ function computeProperty(property, node, types) {
   }
 
   return property;
+}
+
+function variableName() {
+  const randomString = Math.random().toString(36).replace(/[^a-z]+/g, '');
+  return `tempVar_${randomString}_${variableIndex++}`
 }
 
 module.exports = ({ types }) => {
@@ -28,7 +35,50 @@ module.exports = ({ types }) => {
 
       path.replaceWith(types.callExpression(types.identifier('globalSetter'), args));
     },
+    CallExpression(path) {
+      if (path.node.callee.name === 'globalGetter') return;
+      if (path.node.callee.type !== 'MemberExpression' || path.node.callee.property.name === 'call' || path.node.callee.property.name === 'apply') return;
+
+      const variable = variableName();
+      path.replaceWith(
+        types.blockStatement(
+          [
+            types.variableDeclaration(
+              'const',
+              [
+                types.variableDeclarator(
+                  types.identifier(variable),
+                  path.node.callee.object,
+                ),
+              ],
+            ),
+            types.expressionStatement(
+              types.callExpression(
+                types.memberExpression(
+                  types.memberExpression(
+                    types.identifier(variable),
+                    path.node.callee.property
+                  ),
+                  types.identifier('call'),
+                ),
+                [
+                  types.callExpression(
+                    types.identifier('objectTarget'),
+                    [types.identifier(variable)]
+                  ),
+                  ...path.node.arguments
+                ],
+              ),
+            ),
+          ]
+        )
+      );
+    },
     MemberExpression(path) {
+      if (path.node.property.name === 'call' || path.node.property.name === 'apply') {
+        return;
+      }
+
       const args = [
         path.node.object,
         computeProperty(path.node.property, path.node, types),

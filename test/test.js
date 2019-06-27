@@ -24,7 +24,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
     });
   });
 
-  describe('globalGetter', () => {
+  describe.only('globalGetter', () => {
     context('when accessing on regular object', () => {
       context('when property is not a function', () => {
         context('when property is top-level', () => {
@@ -110,6 +110,50 @@ describe('babel-plugin-es5-proxy @medium', () => {
                 const output = buildRun(code);
 
                 expect(output).to.equal(VALUE);
+              });
+
+              context('when specifying a this', () => {
+                context('with call', () => {
+                  it('should return the value', () => {
+                    const code = `
+                      const thisObj = { stuff: ${VALUE} }
+                      const baz = { stuff: 5, boo: function() { return this.stuff; } };
+                      baz.boo.call(thisObj);
+                    `;
+
+                    const output = buildRun(code);
+
+                    expect(output).to.equal(VALUE);
+                  });
+                });
+
+                context('with apply', () => {
+                  it('should return the value', () => {
+                    const code = `
+                      const thisObj = { stuff: ${VALUE} }
+                      const baz = { stuff: 5, boo: function() { return this.stuff; } };
+                      baz.boo.apply(thisObj);
+                    `;
+
+                    const output = buildRun(code);
+
+                    expect(output).to.equal(VALUE);
+                  });
+                });
+
+                context('with bind', () => {
+                  it('should return the value', () => {
+                    const code = `
+                      const thisObj = { stuff: ${VALUE} }
+                      const baz = { stuff: 5, boo: function() { return this.stuff; } };
+                      baz.boo.bind(thisObj)();
+                    `;
+
+                    const output = buildRun(code);
+
+                    expect(output).to.equal(VALUE);
+                  });
+                });
               });
             });
           });
@@ -378,7 +422,12 @@ describe('babel-plugin-es5-proxy @medium', () => {
           context('when the property is a function', () => {
             it('should bind the function to the right object', () => {
               const code = `
-                const obj = new Proxy({ bar: function() { return this.baz }, baz: ${VALUE} }, { get: function(property) { return this.bar; } })
+                const obj = new Proxy({
+                  bar: function() { return this.baz },
+                  baz: ${VALUE}
+                }, {
+                  get: function(property) { return this.bar; }
+                });
                 obj.bar();
               `;
 
