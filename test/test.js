@@ -564,6 +564,17 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
             expect(output).to.equal(VALUE);
           });
+
+          it('should return the assigned value', () => {
+            const code = `
+              const obj = new Proxy({});
+              obj.bar = ${VALUE};
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.equal(VALUE);
+          });
         });
 
         context('when setting the property with brackets', () => {
@@ -580,10 +591,10 @@ describe('babel-plugin-es5-proxy @medium', () => {
           });
         });
       });
-      context('when a setter had been defined', () => {
+      context('when a setter has been defined', () => {
         it('should use the setter', () => {
           const code = `
-            const obj = new Proxy({}, { set: function(property, value) { this.bar = ${VALUE} } });
+            const obj = new Proxy({}, { set: function(property, value) { return this.bar = ${VALUE} } });
             obj['bing'] = 'PAF';
             obj.bar;
           `;
@@ -592,6 +603,18 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
           expect(output).to.equal(VALUE);
         });
+
+        it('should return the same value as the setter', () => {
+          const code = `
+            const obj = new Proxy({}, { set: function(property, value) { this.bar = value; return ${VALUE} } });
+            obj['bing'] = 'PAF';
+          `;
+
+          const output = buildRun(code);
+
+          expect(output).to.equal(VALUE);
+        });
+
         context('when setting a function', () => {
           it('should be binded on the object', () => {
             const code = `
