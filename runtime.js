@@ -19,7 +19,7 @@ function globalGetter(object, propertyName) { // eslint-disable-line no-unused-v
   return (object instanceof Proxy) ? object.get(propertyName) : object[propertyName];
 }
 
-function objectTarget(object) {
+function objectTarget(object) { // eslint-disable-line no-unused-vars
   return (object instanceof Proxy) ? object.target : object;
 }
 

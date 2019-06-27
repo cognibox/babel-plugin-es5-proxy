@@ -18,8 +18,9 @@ function computeProperty(property, node, types) {
 }
 
 function variableName() {
-  const randomString = Math.random().toString(36).replace(/[^a-z]+/g, '');
-  return `tempVar_${randomString}_${variableIndex++}`
+  const wantedCharacterNumbers = 36;
+  const randomString = Math.random().toString(wantedCharacterNumbers).replace(/[^a-z]+/g, '');
+  return `tempVar_${randomString}_${variableIndex++}`;
 }
 
 module.exports = ({ types }) => {
@@ -57,21 +58,21 @@ module.exports = ({ types }) => {
                 types.memberExpression(
                   types.memberExpression(
                     types.identifier(variable),
-                    path.node.callee.property
+                    path.node.callee.property,
                   ),
                   types.identifier('call'),
                 ),
                 [
                   types.callExpression(
                     types.identifier('objectTarget'),
-                    [types.identifier(variable)]
+                    [types.identifier(variable)],
                   ),
-                  ...path.node.arguments
+                  ...path.node.arguments,
                 ],
               ),
             ),
-          ]
-        )
+          ],
+        ),
       );
     },
     MemberExpression(path) {
