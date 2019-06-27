@@ -111,6 +111,53 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
                 expect(output).to.equal(VALUE);
               });
+
+              context('when specifying a this', () => {
+                context('with call', () => {
+                  it('should return the value', () => {
+                    const valueToAdd = Math.random();
+                    const code = `
+                      const thisObj = { stuff: ${VALUE} }
+                      const baz = { stuff: 5, boo: function(vv) { return this.stuff + vv; } };
+                      baz.boo.call(thisObj, ${valueToAdd});
+                    `;
+
+                    const output = buildRun(code);
+
+                    expect(output).to.equal(VALUE + valueToAdd);
+                  });
+                });
+
+                context('with apply', () => {
+                  it('should return the value', () => {
+                    const valueToAdd = Math.random();
+                    const code = `
+                      const thisObj = { stuff: ${VALUE} }
+                      const baz = { stuff: 5, boo: function(vv) { return this.stuff + vv; } };
+                      baz.boo.apply(thisObj, [${valueToAdd}]);
+                    `;
+
+                    const output = buildRun(code);
+
+                    expect(output).to.equal(VALUE + valueToAdd);
+                  });
+                });
+
+                context('with bind', () => {
+                  it('should return the value', () => {
+                    const valueToAdd = Math.random();
+                    const code = `
+                      const thisObj = { stuff: ${VALUE} }
+                      const baz = { stuff: 5, boo: function(vv) { return this.stuff + vv; } };
+                      baz.boo.bind(thisObj)(${valueToAdd});
+                    `;
+
+                    const output = buildRun(code);
+
+                    expect(output).to.equal(VALUE + valueToAdd);
+                  });
+                });
+              });
             });
           });
         });
@@ -378,7 +425,12 @@ describe('babel-plugin-es5-proxy @medium', () => {
           context('when the property is a function', () => {
             it('should bind the function to the right object', () => {
               const code = `
-                const obj = new Proxy({ bar: function() { return this.baz }, baz: ${VALUE} }, { get: function(property) { return this.bar; } })
+                const obj = new Proxy({
+                  bar: function() { return this.baz },
+                  baz: ${VALUE}
+                }, {
+                  get: function(property) { return this.bar; }
+                });
                 obj.bar();
               `;
 

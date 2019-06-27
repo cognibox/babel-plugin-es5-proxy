@@ -16,21 +16,11 @@ function Proxy(target, handlers = {}) {
 }
 
 function globalGetter(object, propertyName) { // eslint-disable-line no-unused-vars
-  let target, value;
+  return (object instanceof Proxy) ? object.get(propertyName) : object[propertyName];
+}
 
-  if (object instanceof Proxy) {
-    value = object.get(propertyName);
-    target = object.target;
-  } else {
-    value = object[propertyName];
-    target = object;
-  }
-
-  if (typeof value === 'function') {
-    return value.bind(target);
-  }
-
-  return value;
+function objectTarget(object) { // eslint-disable-line no-unused-vars
+  return (object instanceof Proxy) ? object.target : object;
 }
 
 function globalSetter(object, propertyName, value) { // eslint-disable-line no-unused-vars
