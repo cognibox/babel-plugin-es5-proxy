@@ -6,6 +6,7 @@ function defaultGet(property) {
 
 function defaultSet(property, value) {
   this[property] = value; //eslint-disable-line no-invalid-this
+  return value;
 }
 
 function Proxy(target, handlers = {}) {
@@ -34,8 +35,8 @@ function globalGetter(object, propertyName) { // eslint-disable-line no-unused-v
 
 function globalSetter(object, propertyName, value) { // eslint-disable-line no-unused-vars
   if (object instanceof Proxy) {
-    object.set(propertyName, value);
-  } else {
-    object[propertyName] = value;
+    return object.set(propertyName, value);
   }
+  object[propertyName] = value;
+  return value;
 }
