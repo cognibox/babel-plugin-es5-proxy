@@ -17,10 +17,10 @@
     "babel-core": "6.3.26"
   },
   "devDependencies": {
-    "eslint-config-cbx": "https://github.com/cognibox/eslint-config-cbx.git",
     "babel-register": "6.11.6",
     "chai": "^4.2.0",
     "eslint": "^5.16.0",
+    "eslint-config-cbx": "git+https://github.com/cognibox/eslint-config-cbx.git",
     "mocha": "^6.1.4"
   }
 }

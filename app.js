@@ -47,7 +47,7 @@ module.exports = ({ types }) => {
         types.blockStatement(
           [
             types.variableDeclaration(
-              'const',
+              'var',
               [
                 types.variableDeclarator(
                   types.identifier(variable),
