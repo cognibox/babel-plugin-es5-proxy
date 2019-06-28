@@ -60,7 +60,8 @@ module.exports = ({ types }) => {
                 types.memberExpression(
                   types.memberExpression(
                     types.identifier(variable),
-                    path.node.callee.property,
+                    computeProperty(path.node.callee.property, path.node.callee, types),
+                    true,
                   ),
                   types.identifier('call'),
                 ),

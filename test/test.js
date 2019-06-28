@@ -1,5 +1,5 @@
 const expect = require('chai').expect;
-const babel = require('babel-core');
+const babel = require('@babel/core');
 
 let VALUE;
 
@@ -324,6 +324,19 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
           expect(output).to.equal(VALUE);
         });
+
+        context('when the function is in an array', () => {
+          it('should call the function', () => {
+            const code = `
+                const obj = { bar: [function() { return ${VALUE}; }] };
+                obj.bar[0]();
+              `;
+
+            const output = buildRun(code);
+
+            expect(output).to.equal(VALUE);
+          });
+        });
       });
     });
 
@@ -394,6 +407,19 @@ describe('babel-plugin-es5-proxy @medium', () => {
             const output = buildRun(code);
 
             expect(output).to.equal(VALUE);
+          });
+
+          context('when the function is in an array', () => {
+            it('should call the function', () => {
+              const code = `
+                const obj = new Proxy({ bar: [function() { return ${VALUE}; }] });
+                obj.bar[0]();
+              `;
+
+              const output = buildRun(code);
+
+              expect(output).to.equal(VALUE);
+            });
           });
         });
       });
