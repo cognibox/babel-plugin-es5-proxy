@@ -465,6 +465,17 @@ describe('babel-plugin-es5-proxy @medium', () => {
               expect(output).to.equal(VALUE);
             });
           });
+          context('when eval', () => {
+            it('should not fail', () => {
+              const code = `
+                eval("eval('var obj = { bar: ${VALUE} }; obj.bar;')")
+              `;
+
+              const output = buildRun(code);
+
+              expect(output).to.equal(VALUE);
+            });
+          });
         });
       });
     });

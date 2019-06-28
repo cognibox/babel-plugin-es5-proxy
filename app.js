@@ -1,21 +1,18 @@
 const fs = require('fs');
 const babylon = require('babylon');
+const babel = require('@babel/core');
 const thisModifierFunctions = ['apply', 'bind', 'call'];
 
 let variableIndex = 0;
 
 function addRuntimeToFile(path) {
-  const code = fs.readFileSync(require.resolve('./runtime.js')).toString();
-
-  path.unshiftContainer('body', babylon.parse(code).program.body);
-}
-
-function computeProperty(property, node, types) {
-  if (property.type === 'Identifier' && !node.computed) {
-    return types.stringLiteral(property.name);
-  }
-
-  return property;
+  path.unshiftContainer(
+    'body',
+    babylon.parse(
+      fs.readFileSync(
+        require.resolve('./runtime.js')
+      ).toString()
+    ).program.body);
 }
 
 function variableName() {
@@ -25,22 +22,52 @@ function variableName() {
 }
 
 module.exports = ({ types }) => {
+  function computeProperty(property, node) {
+    if (property.type === 'Identifier' && !node.computed) {
+      return types.stringLiteral(property.name);
+    }
+
+    return property;
+  }
+
   const nodes = {
     AssignmentExpression(path) {
       if (path.node.left.type !== 'MemberExpression') return;
 
-      const args = [
-        path.node.left.object,
-        computeProperty(path.node.left.property, path.node.left, types),
-        path.node.right,
-      ];
-
-      path.replaceWith(types.callExpression(types.identifier('globalSetter'), args));
+      path.replaceWith(
+        types.callExpression(
+          types.identifier('globalSetter'),
+          [
+            path.node.left.object,
+            computeProperty(path.node.left.property, path.node.left),
+            path.node.right,
+          ],
+        )
+      );
     },
     CallExpression(path) {
       if (path.node.callee.name === 'globalGetter') return;
       if (path.node.callee.type !== 'MemberExpression') return;
       if (thisModifierFunctions.includes(path.node.callee.property.name)) return;
+
+      if (path.node.callee.name === 'eval') {
+        path.replaceWith(
+          types.callExpression(
+            types.identifier('_eval'),
+            [
+              types.stringLiteral(
+                babel.transform(
+                  path.node.arguments[0].value,
+                  {
+                    plugins: [require.resolve('./app.js')],
+                  }
+                ).code,
+              ),
+            ]
+          ),
+        );
+        return;
+      }
 
       const variable = variableName();
       path.replaceWith(
@@ -60,7 +87,7 @@ module.exports = ({ types }) => {
                 types.memberExpression(
                   types.memberExpression(
                     types.identifier(variable),
-                    computeProperty(path.node.callee.property, path.node.callee, types),
+                    computeProperty(path.node.callee.property, path.node.callee),
                     true,
                   ),
                   types.identifier('call'),
@@ -81,11 +108,25 @@ module.exports = ({ types }) => {
     MemberExpression(path) {
       if (thisModifierFunctions.includes(path.node.property.name)) return;
 
-      const args = [
-        path.node.object,
-        computeProperty(path.node.property, path.node, types),
-      ];
-      path.replaceWith(types.callExpression(types.identifier('globalGetter'), args));
+      path.replaceWith(
+        types.callExpression(
+          types.identifier('globalGetter'),
+          [
+            path.node.object,
+            computeProperty(path.node.property, path.node, types),
+          ],
+        ),
+      );
+    },
+    NewExpression(path) {
+      if (path.node.callee.name !== 'Proxy') return;
+
+      path.replaceWith(
+        types.newExpression(
+          types.identifier('Proxy2'),
+          path.node.arguments,
+        ),
+      );
     },
   };
 
