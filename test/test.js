@@ -28,8 +28,8 @@ describe('babel-plugin-es5-proxy @medium', () => {
     context('when calling eval in eval', () => {
       it('should return the value of the eval', () => {
         const code = `
-                eval("eval('var obj = { bar: ${VALUE} }; obj.bar;')")
-              `;
+          eval("eval('var obj = { bar: ${VALUE} }; obj.bar;')")
+        `;
 
         const output = buildRun(code);
 

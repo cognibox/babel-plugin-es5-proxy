@@ -10,11 +10,11 @@ function defaultSet(property, value) {
 }
 
 function globalGetter(object, propertyName) { // eslint-disable-line no-unused-vars
-  return (object.Proxy) ? object.get(propertyName) : object[propertyName];
+  return (object instanceof Proxy) ? object.get(propertyName) : object[propertyName];
 }
 
 function globalSetter(object, propertyName, value) { // eslint-disable-line no-unused-vars
-  if (object.Proxy) {
+  if (object instanceof Proxy) {
     return object.set(propertyName, value);
   }
   object[propertyName] = value;
@@ -22,12 +22,11 @@ function globalSetter(object, propertyName, value) { // eslint-disable-line no-u
 }
 
 function objectTarget(object) { // eslint-disable-line no-unused-vars
-  return (object.Proxy) ? object.target : object;
+  return (object instanceof Proxy) ? object.target : object;
 }
 
 function Proxy(target, handlers = {}) { // eslint-disable-line no-unused-vars
   this.target = target;
-  this.Proxy = true;
   this.get = (handlers.get || defaultGet).bind(this.target);
   this.set = (handlers.set || defaultSet).bind(this.target);
 }
