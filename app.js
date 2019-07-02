@@ -5,20 +5,44 @@ const thisModifierFunctions = ['apply', 'bind', 'call'];
 
 let variableIndex = 0;
 
-function addRuntimeToFile(path) {
+let defaultGetName, defaultSetName, evalName, globalGetterName, globalSetterName, objectTargetName, proxyName;
+
+function setVariableNames() {
+  if (defaultGetName) return;
+
+  defaultGetName = variableName('default_get');
+  defaultSetName = variableName('default_set');
+  evalName = variableName('eval');
+  globalGetterName = variableName('global_getter');
+  globalSetterName = variableName('global_setter');
+  objectTargetName = variableName('object_target');
+  proxyName = variableName('proxy');
+}
+
+function addRuntimeToFile(path, code) {
+  const runtime = fs.readFileSync(
+    require.resolve('./runtime.js')
+  )
+        .toString()
+        .replace(/defaultGet/g, defaultGetName)
+        .replace(/defaultSet/g, defaultSetName)
+        .replace(/globalGetter/g, globalGetterName)
+        .replace(/globalSetter/g, globalSetterName)
+        .replace(/objectTarget/g, objectTargetName)
+        .replace(/Proxy/g, proxyName);
+
   path.unshiftContainer(
     'body',
     babylon.parse(
-      fs.readFileSync(
-        require.resolve('./runtime.js')
-      ).toString()
-    ).program.body);
+      runtime
+    ).program.body
+  );
 }
 
-function variableName() {
-  const wantedCharacterNumbers = 36;
-  const randomString = Math.random().toString(wantedCharacterNumbers).replace(/[^a-z]+/g, '');
-  return `tempVar_${randomString}_${variableIndex++}`;
+function variableName(prefix) {
+  const base36 = 36;
+  const randomString = Math.random().toString(base36).replace(/[^a-z]+/g, '');
+  return `__${prefix}_${randomString}_${variableIndex++}`;
 }
 
 module.exports = ({ types }) => {
@@ -36,7 +60,7 @@ module.exports = ({ types }) => {
 
       path.replaceWith(
         types.callExpression(
-          types.identifier('globalSetter'),
+          types.identifier(globalSetterName),
           [
             path.node.left.object,
             computeProperty(path.node.left.property, path.node.left),
@@ -46,14 +70,14 @@ module.exports = ({ types }) => {
       );
     },
     CallExpression(path) {
-      if (path.node.callee.name === 'globalGetter') return;
+      if (path.node.callee.name === globalGetterName || path.node.callee.name === globalSetterName) return;
       if (path.node.callee.type !== 'MemberExpression') return;
       if (thisModifierFunctions.includes(path.node.callee.property.name)) return;
 
       if (path.node.callee.name === 'eval') {
         path.replaceWith(
           types.callExpression(
-            types.identifier('_eval'),
+            types.identifier(evalName),
             [
               types.stringLiteral(
                 babel.transform(
@@ -69,7 +93,7 @@ module.exports = ({ types }) => {
         return;
       }
 
-      const variable = variableName();
+      const tempVariableName = variableName('temp');
       path.replaceWith(
         types.blockStatement(
           [
@@ -77,7 +101,7 @@ module.exports = ({ types }) => {
               'var',
               [
                 types.variableDeclarator(
-                  types.identifier(variable),
+                  types.identifier(tempVariableName),
                   path.node.callee.object,
                 ),
               ],
@@ -86,7 +110,7 @@ module.exports = ({ types }) => {
               types.callExpression(
                 types.memberExpression(
                   types.memberExpression(
-                    types.identifier(variable),
+                    types.identifier(tempVariableName),
                     computeProperty(path.node.callee.property, path.node.callee),
                     true,
                   ),
@@ -94,8 +118,8 @@ module.exports = ({ types }) => {
                 ),
                 [
                   types.callExpression(
-                    types.identifier('objectTarget'),
-                    [types.identifier(variable)],
+                    types.identifier(objectTargetName),
+                    [types.identifier(tempVariableName)],
                   ),
                   ...path.node.arguments,
                 ],
@@ -110,7 +134,7 @@ module.exports = ({ types }) => {
 
       path.replaceWith(
         types.callExpression(
-          types.identifier('globalGetter'),
+          types.identifier(globalGetterName),
           [
             path.node.object,
             computeProperty(path.node.property, path.node, types),
@@ -123,7 +147,7 @@ module.exports = ({ types }) => {
 
       path.replaceWith(
         types.newExpression(
-          types.identifier('Proxy2'),
+          types.identifier(proxyName),
           path.node.arguments,
         ),
       );
@@ -133,6 +157,8 @@ module.exports = ({ types }) => {
   return {
     visitor: {
       Program(path) {
+        setVariableNames();
+
         path.traverse(nodes);
 
         addRuntimeToFile(path);
