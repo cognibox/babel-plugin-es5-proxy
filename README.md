@@ -3,7 +3,6 @@ Babel plugin to use ES6 Proxy in ES5. Inspired by the work of https://github.com
 
 ## Installation
 ```shell
-
 npm install --save-dev git+https://github.com/cognibox/babel-plugin-es5-proxy.git
 ```
 
