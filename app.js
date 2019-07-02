@@ -24,6 +24,7 @@ function addRuntimeToFile(path) {
     .toString()
     .replace(/defaultGet/g, defaultGetName)
     .replace(/defaultSet/g, defaultSetName)
+    .replace(/_eval/g, evalName)
     .replace(/globalGetter/g, globalGetterName)
     .replace(/globalSetter/g, globalSetterName)
     .replace(/objectTarget/g, objectTargetName)
@@ -69,8 +70,6 @@ module.exports = ({ types }) => {
     },
     CallExpression(path) {
       if (path.node.callee.name === globalGetterName || path.node.callee.name === globalSetterName) return;
-      if (path.node.callee.type !== 'MemberExpression') return;
-      if (thisModifierFunctions.includes(path.node.callee.property.name)) return;
 
       if (path.node.callee.name === 'eval') {
         path.replaceWith(
@@ -91,41 +90,45 @@ module.exports = ({ types }) => {
         return;
       }
 
-      const tempVariableName = variableName('temp');
-      path.replaceWith(
-        types.blockStatement(
-          [
-            types.variableDeclaration(
-              'var',
-              [
-                types.variableDeclarator(
-                  types.identifier(tempVariableName),
-                  path.node.callee.object,
-                ),
-              ],
-            ),
-            types.expressionStatement(
-              types.callExpression(
-                types.memberExpression(
-                  types.memberExpression(
-                    types.identifier(tempVariableName),
-                    computeProperty(path.node.callee.property, path.node.callee),
-                    true,
-                  ),
-                  types.identifier('call'),
-                ),
+      if (path.node.callee.type === 'MemberExpression') {
+        if (thisModifierFunctions.includes(path.node.callee.property.name)) return;
+
+        const tempVariableName = variableName('temp');
+        path.replaceWith(
+          types.blockStatement(
+            [
+              types.variableDeclaration(
+                'var',
                 [
-                  types.callExpression(
-                    types.identifier(objectTargetName),
-                    [types.identifier(tempVariableName)],
+                  types.variableDeclarator(
+                    types.identifier(tempVariableName),
+                    path.node.callee.object,
                   ),
-                  ...path.node.arguments,
                 ],
               ),
-            ),
-          ],
-        ),
-      );
+              types.expressionStatement(
+                types.callExpression(
+                  types.memberExpression(
+                    types.memberExpression(
+                      types.identifier(tempVariableName),
+                      computeProperty(path.node.callee.property, path.node.callee),
+                      true,
+                    ),
+                    types.identifier('call'),
+                  ),
+                  [
+                    types.callExpression(
+                      types.identifier(objectTargetName),
+                      [types.identifier(tempVariableName)],
+                    ),
+                    ...path.node.arguments,
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      }
     },
     MemberExpression(path) {
       if (thisModifierFunctions.includes(path.node.property.name)) return;

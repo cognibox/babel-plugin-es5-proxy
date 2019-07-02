@@ -1,4 +1,4 @@
-'use strict';
+const _eval = eval; //eslint-disable-line no-eval, no-unused-vars
 
 function defaultGet(property) {
   return this[property]; // eslint-disable-line no-invalid-this
