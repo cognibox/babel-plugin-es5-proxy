@@ -19,17 +19,15 @@ function setVariableNames() {
   proxyName = variableName('proxy');
 }
 
-function addRuntimeToFile(path, code) {
-  const runtime = fs.readFileSync(
-    require.resolve('./runtime.js')
-  )
-        .toString()
-        .replace(/defaultGet/g, defaultGetName)
-        .replace(/defaultSet/g, defaultSetName)
-        .replace(/globalGetter/g, globalGetterName)
-        .replace(/globalSetter/g, globalSetterName)
-        .replace(/objectTarget/g, objectTargetName)
-        .replace(/Proxy/g, proxyName);
+function addRuntimeToFile(path) {
+  const runtime = fs.readFileSync(require.resolve('./runtime.js'))
+    .toString()
+    .replace(/defaultGet/g, defaultGetName)
+    .replace(/defaultSet/g, defaultSetName)
+    .replace(/globalGetter/g, globalGetterName)
+    .replace(/globalSetter/g, globalSetterName)
+    .replace(/objectTarget/g, objectTargetName)
+    .replace(/Proxy/g, proxyName);
 
   path.unshiftContainer(
     'body',

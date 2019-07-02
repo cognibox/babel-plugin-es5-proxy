@@ -737,9 +737,7 @@ function build(code) {
   return babel.transform(
     code,
     {
-      plugins: [
-        require.resolve('../app.js'),
-      ],
+      plugins: [require.resolve('../app.js')],
     },
   );
 }
