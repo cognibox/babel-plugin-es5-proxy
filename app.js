@@ -44,7 +44,24 @@ function variableName(prefix) {
   return `__${prefix}_${randomString}_${variableIndex++}`;
 }
 
-module.exports = ({ types }) => {
+module.exports = ({ types } = {}, { useBuiltIns, targets } = {}) => {
+  const env = process.env.BABEL_ENV || process.env.NODE_ENV;
+
+  if (typeof targets === 'undefined') {
+    targets = env === 'test' ? { node: 'current' } : { ie: 9, uglify: true };
+  }
+
+  const presentEnvConf = {
+    useBuiltIns,
+    targets,
+  };
+
+  if (env !== 'test') {
+    presentEnvConf.modules = false;
+  }
+
+  const presets = [[require('babel-preset-env').default, presentEnvConf]];
+
   function computeProperty(property, node) {
     if (property.type === 'Identifier' && !node.computed) {
       return types.stringLiteral(property.name);
@@ -81,6 +98,7 @@ module.exports = ({ types }) => {
                   path.node.arguments[0].value,
                   {
                     plugins: [require.resolve('./app.js')],
+                    presets: presets,
                   }
                 ).code,
               ),

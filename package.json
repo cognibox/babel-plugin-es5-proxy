@@ -13,6 +13,7 @@
     "@babel/cli": "^7.4.4",
     "@babel/core": "^7.4.5",
     "@babel/traverse": "^7.4.5",
+    "babel-preset-env": "^1.7.0",
     "babylon": "^6.18.0"
   },
   "devDependencies": {

@@ -2,6 +2,7 @@
   "extends": "cbx",
   "globals": {
     "require": false,
+    "process": false,
     "module": false
   }
 }
