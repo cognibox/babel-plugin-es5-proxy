@@ -24,6 +24,36 @@ describe('babel-plugin-es5-proxy @medium', () => {
     });
   });
 
+  describe('eval', () => {
+    context('when calling eval in eval', () => {
+      it('should return the value of the eval', () => {
+        const code = `
+          eval("eval('var obj = { bar: ${VALUE} }; obj.bar;')")
+        `;
+
+        const output = buildRun(code);
+
+        expect(output).to.equal(VALUE);
+      });
+
+      it('should transpile the code in the eval recursively', () => {
+        const code = `eval("eval('var obj = { bar: ${VALUE} }; obj.bar;')")`;
+
+        const output = build(code).code;
+
+        expect(output).to.include('global_getter');
+      });
+
+      it('should transpile the code in the eval recursively', () => {
+        const code = `eval("eval('var obj = { bar: ${VALUE} }; obj.bar;')")`;
+
+        const output = build(code).code;
+
+        expect(output).to.include('__eval');
+      });
+    });
+  });
+
   describe('globalGetter', () => {
     context('when accessing on regular object', () => {
       context('when property is not a function', () => {
