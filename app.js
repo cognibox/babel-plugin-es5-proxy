@@ -37,7 +37,7 @@ function computePresets({ useBuiltIns, targets, modules }) {
     modules: modules || false,
   };
 
-  return [[require('babel-preset-env').default, presentEnvConf]];
+  return [[require('@babel/preset-env').default, presentEnvConf]];
 }
 
 function setVariableNames() {
