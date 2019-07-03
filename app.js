@@ -5,13 +5,14 @@ const thisModifierFunctions = ['apply', 'bind', 'call'];
 
 let variableIndex = 0;
 
-let defaultGetName, defaultSetName, evalName, globalGetterName, globalSetterName, objectTargetName, proxyName;
+let defaultGetName, defaultSetName, evalName, globalGetterName, globalSetterName, isProxyName, objectTargetName, proxyName;
 
 function addRuntimeToFile(path) {
   const runtime = fs.readFileSync(require.resolve('./runtime.js'))
     .toString()
     .replace(/defaultGet/g, defaultGetName)
     .replace(/defaultSet/g, defaultSetName)
+    .replace(/isProxyName/g, isProxyName)
     .replace(/globalGetter/g, globalGetterName)
     .replace(/globalSetter/g, globalSetterName)
     .replace(/objectTarget/g, objectTargetName)
@@ -48,6 +49,7 @@ function setVariableNames() {
   evalName = variableName('temp_eval');
   globalGetterName = variableName('global_getter');
   globalSetterName = variableName('global_setter');
+  isProxyName = variableName('is_proxy');
   objectTargetName = variableName('object_target');
   proxyName = variableName('proxy');
 }

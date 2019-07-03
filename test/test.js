@@ -1324,7 +1324,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
         context('when the getter uses an object property', () => {
           it('should be able to access the property', () => {
             const code = `
-              const obj = new Proxy({ bar: ${VALUE} }, { get: function(property) { return this.bar; } })
+              const obj = new Proxy({ bar: ${VALUE} }, { get: function(object, property) { return object.bar; } })
               obj.bar;
             `;
 
@@ -1340,7 +1340,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
                   bar: function() { return this.baz },
                   baz: ${VALUE}
                 }, {
-                  get: function(property) { return this.bar; }
+                  get: function(object, property) { return object.bar; }
                 });
                 obj.bar();
               `;
@@ -1557,7 +1557,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
       context('when a setter has been defined', () => {
         it('should use the setter', () => {
           const code = `
-            const obj = new Proxy({}, { set: function(property, value) { return this.bar = ${VALUE} } });
+            const obj = new Proxy({}, { set: function(object, property, value) { return object.bar = ${VALUE} } });
             obj['bing'] = 'PAF';
             obj.bar;
           `;
@@ -1569,7 +1569,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
         it('should return the same value as the setter', () => {
           const code = `
-            const obj = new Proxy({}, { set: function(property, value) { this.bar = value; return ${VALUE} } });
+            const obj = new Proxy({}, { set: function(object, property, value) { object.bar = value; return ${VALUE} } });
             obj['bing'] = 'PAF';
           `;
 
@@ -1581,7 +1581,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
         context('when setting a function', () => {
           it('should be binded on the object', () => {
             const code = `
-              const obj = new Proxy({ bar: ${VALUE} }, { set: function(property, value) { this.baz = function() { return this.bar; } } });
+              const obj = new Proxy({ bar: ${VALUE} }, { set: function(object, property, value) { object.baz = function() { return this.bar; } } });
               obj.bar = 5;
               obj.baz();
             `;
