@@ -20,7 +20,7 @@ function globalSetter(object, propertyName, value) { // eslint-disable-line no-u
 }
 
 function isProxy(object) {
-  return object.constructor.name === 'Proxy';
+  return object.constructor && object.constructor.name === 'Proxy';
 }
 
 function objectTarget(object) { // eslint-disable-line no-unused-vars
