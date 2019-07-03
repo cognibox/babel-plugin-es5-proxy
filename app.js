@@ -12,7 +12,6 @@ function addRuntimeToFile(path) {
     .toString()
     .replace(/defaultGet/g, defaultGetName)
     .replace(/defaultSet/g, defaultSetName)
-    .replace(/_eval/g, evalName)
     .replace(/globalGetter/g, globalGetterName)
     .replace(/globalSetter/g, globalSetterName)
     .replace(/objectTarget/g, objectTargetName)
@@ -46,7 +45,7 @@ function setVariableNames() {
 
   defaultGetName = variableName('default_get');
   defaultSetName = variableName('default_set');
-  evalName = variableName('eval');
+  evalName = variableName('temp_eval');
   globalGetterName = variableName('global_getter');
   globalSetterName = variableName('global_setter');
   objectTargetName = variableName('object_target');
@@ -67,6 +66,19 @@ module.exports = ({ types } = {}, options = {}) => {
 
     return property;
   }
+
+  const restoreEvalNodes = {
+    CallExpression(path) {
+      if (path.node.callee.name === evalName) {
+        path.replaceWith(
+          types.callExpression(
+            types.identifier('eval'),
+            path.node.arguments,
+          ),
+        );
+      }
+    },
+  };
 
   const nodes = {
     AssignmentExpression(path) {
@@ -256,6 +268,7 @@ module.exports = ({ types } = {}, options = {}) => {
         setVariableNames();
 
         path.traverse(nodes);
+        path.traverse(restoreEvalNodes);
 
         addRuntimeToFile(path);
       },

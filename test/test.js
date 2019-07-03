@@ -44,12 +44,17 @@ describe('babel-plugin-es5-proxy @medium', () => {
         expect(output).to.include('global_getter');
       });
 
-      it('should transpile the code in the eval recursively', () => {
-        const code = `eval("eval('var obj = { bar: ${VALUE} }; obj.bar;')")`;
+      it('should have access to the local scope', () => {
+        const code = `
+          function foo(bar) {
+            return eval('bar');
+          }
+          foo(${VALUE});
+        `;
 
-        const output = build(code).code;
+        const output = buildRun(code);
 
-        expect(output).to.include('__eval');
+        expect(output).to.eq(VALUE);
       });
 
       context('when using es6 syntax', () => {
