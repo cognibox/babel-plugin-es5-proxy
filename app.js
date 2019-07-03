@@ -7,18 +7,6 @@ let variableIndex = 0;
 
 let defaultGetName, defaultSetName, evalName, globalGetterName, globalSetterName, objectTargetName, proxyName;
 
-function setVariableNames() {
-  if (defaultGetName) return;
-
-  defaultGetName = variableName('default_get');
-  defaultSetName = variableName('default_set');
-  evalName = variableName('eval');
-  globalGetterName = variableName('global_getter');
-  globalSetterName = variableName('global_setter');
-  objectTargetName = variableName('object_target');
-  proxyName = variableName('proxy');
-}
-
 function addRuntimeToFile(path) {
   const runtime = fs.readFileSync(require.resolve('./runtime.js'))
     .toString()
@@ -38,13 +26,39 @@ function addRuntimeToFile(path) {
   );
 }
 
+function computePresets({ useBuiltIns, targets, modules }) {
+  if (typeof targets === 'undefined') {
+    targets = { ie: 9, uglify: true };
+  }
+
+  const presentEnvConf = {
+    useBuiltIns: useBuiltIns || false,
+    targets,
+    modules: modules || false,
+  };
+
+  return [[require('@babel/preset-env').default, presentEnvConf]];
+}
+
+function setVariableNames() {
+  if (defaultGetName) return;
+
+  defaultGetName = variableName('default_get');
+  defaultSetName = variableName('default_set');
+  evalName = variableName('eval');
+  globalGetterName = variableName('global_getter');
+  globalSetterName = variableName('global_setter');
+  objectTargetName = variableName('object_target');
+  proxyName = variableName('proxy');
+}
+
 function variableName(prefix) {
   const base36 = 36;
   const randomString = Math.random().toString(base36).replace(/[^a-z]+/g, '');
   return `__${prefix}_${randomString}_${variableIndex++}`;
 }
 
-module.exports = ({ types }) => {
+module.exports = ({ types } = {}, options = {}) => {
   function computeProperty(property, node) {
     if (property.type === 'Identifier' && !node.computed) {
       return types.stringLiteral(property.name);
@@ -81,6 +95,7 @@ module.exports = ({ types }) => {
                   path.node.arguments[0].value,
                   {
                     plugins: [require.resolve('./app.js')],
+                    presets: computePresets(options),
                   }
                 ).code,
               ),

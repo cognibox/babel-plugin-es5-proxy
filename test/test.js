@@ -51,6 +51,16 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
         expect(output).to.include('__eval');
       });
+
+      context('when using es6 syntax', () => {
+        it('should not import core-js', () => {
+          const code = `eval("var obj = { bar: ${VALUE} }; typeof obj.bar;")`;
+          const output = build(code).code;
+          expect(output).to.include('function _typeof');
+          expect(output).to.not.include('core-js');
+          expect(output).to.not.include('runtime-corejs2');
+        });
+      });
     });
   });
 
