@@ -64,107 +64,841 @@ describe('babel-plugin-es5-proxy @medium', () => {
     });
   });
 
-  describe('updateExpression', () => {
-    context('when incrementing an accessed property', () => {
-      context('when postfix', () => {
-        it('should increment the property', () => {
-          const code = `
-            const obj = { foo: 0 };
-            obj.foo++;
-            obj.foo;
-          `;
+  context('when using a regular object', () => {
+    describe('assignmentExpression', () => {
+      describe('+=', () => {
+        context('when incrementing by 1', () => {
+          it('should add 1 to the property', () => {
+            const code = `
+              const obj = { foo: ${VALUE} };
+              obj.foo += 1;
+              obj.foo;
+            `;
 
-          const output = buildRun(code);
+            const output = buildRun(code);
 
-          expect(output).to.eq(1);
-        });
+            expect(output).to.eq(VALUE + 1);
+          });
 
-        it('should return the not incremented property', () => {
-          const code = `
-            const obj = { foo: 0 };
-            obj.foo++;
-          `;
+          it('should return the property plus 1', () => {
+            const code = `
+              const obj = { foo: ${VALUE} };
+              obj.foo += 1;
+            `;
 
-          const output = buildRun(code);
+            const output = buildRun(code);
 
-          expect(output).to.eq(0);
+            expect(output).to.eq(VALUE + 1);
+          });
         });
       });
 
-      context('when prefix', () => {
-        it('should increment the property', () => {
-          const code = `
-            const obj = { foo: 0 };
-            ++obj.foo;
-            obj.foo;
-          `;
+      describe('-=', () => {
+        context('when decrementing by 1', () => {
+          it('should remove 1 to the property', () => {
+            const code = `
+              const obj = { foo: ${VALUE} };
+              obj.foo -= 1;
+              obj.foo;
+            `;
 
-          const output = buildRun(code);
+            const output = buildRun(code);
 
-          expect(output).to.eq(1);
+            expect(output).to.eq(VALUE - 1);
+          });
+
+          it('should return the property minus 1', () => {
+            const code = `
+              const obj = { foo: ${VALUE} };
+              obj.foo -= 1;
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.eq(VALUE - 1);
+          });
         });
+      });
 
-        it('should return the incremented property', () => {
-          const code = `
-            const obj = { foo: 0 };
-            ++obj.foo;
-          `;
+      describe('*=', () => {
+        context('when multiplying by 2', () => {
+          it('should multiply the property by 2', () => {
+            const n = 2;
+            const code = `
+              const obj = { foo: ${VALUE} };
+              obj.foo *= ${n};
+              obj.foo;
+            `;
 
-          const output = buildRun(code);
+            const output = buildRun(code);
 
-          expect(output).to.eq(1);
+            expect(output).to.eq(VALUE * n);
+          });
+
+          it('should return the property multiplied by 2', () => {
+            const n = 2;
+            const code = `
+              const obj = { foo: ${VALUE} };
+              obj.foo *= ${n};
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.eq(VALUE * n);
+          });
+        });
+      });
+
+      describe('/=', () => {
+        context('when dividing by 2', () => {
+          it('should divide the property by 2', () => {
+            const n = 2;
+            const code = `
+              const obj = { foo: ${VALUE} };
+              obj.foo /= ${n};
+              obj.foo;
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.eq(VALUE / n);
+          });
+
+          it('should return the property divided by 2', () => {
+            const n = 2;
+            const code = `
+              const obj = { foo: ${VALUE} };
+              obj.foo /= ${n};
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.eq(VALUE / n);
+          });
+        });
+      });
+
+      describe('%=', () => {
+        context('when modulusing by 2', () => {
+          it('should modulus the property by 2', () => {
+            const n = 2;
+            const multiplier = 10;
+            const NEW_VALUE = VALUE * multiplier;
+
+            const code = `
+              const obj = { foo: ${NEW_VALUE} };
+              obj.foo %= ${n};
+              obj.foo;
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.eq(NEW_VALUE % n);
+          });
+
+          it('should return the property modulus 2', () => {
+            const n = 2;
+            const multiplier = 10;
+            const NEW_VALUE = VALUE * multiplier;
+            const code = `
+              const obj = { foo: ${NEW_VALUE} };
+              obj.foo %= ${n};
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.eq(NEW_VALUE % n);
+          });
+        });
+      });
+
+      describe('&=', () => {
+        context('when 21 & 15', () => {
+          let OTHER_VALUE;
+
+          beforeEach(() => {
+            VALUE = 21; // eslint-disable-line no-magic-numbers
+            OTHER_VALUE = 15; // eslint-disable-line no-magic-numbers
+          });
+
+          it('should set the value to 5', () => {
+            const code = `
+              const obj = { foo: ${VALUE} };
+              obj.foo &= ${OTHER_VALUE};
+              obj.foo;
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.eq(VALUE & OTHER_VALUE); // eslint-disable-line no-bitwise
+          });
+
+          it('should return 5', () => {
+            const code = `
+              const obj = { foo: ${VALUE} };
+              obj.foo &= ${OTHER_VALUE};
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.eq(VALUE & OTHER_VALUE); // eslint-disable-line no-bitwise
+          });
+        });
+      });
+
+      describe('|=', () => {
+        context('when 21 | 15', () => {
+          let OTHER_VALUE;
+
+          beforeEach(() => {
+            VALUE = 21; // eslint-disable-line no-magic-numbers
+            OTHER_VALUE = 15; // eslint-disable-line no-magic-numbers
+          });
+
+          it('should set the value to 31', () => {
+            const code = `
+              const obj = { foo: ${VALUE} };
+              obj.foo |= ${OTHER_VALUE};
+              obj.foo;
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.eq(VALUE | OTHER_VALUE); // eslint-disable-line no-bitwise
+          });
+
+          it('should return 31', () => {
+            const code = `
+              const obj = { foo: ${VALUE} };
+              obj.foo |= ${OTHER_VALUE};
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.eq(VALUE | OTHER_VALUE); // eslint-disable-line no-bitwise
+          });
+        });
+      });
+
+      describe('^=', () => {
+        context('when 21 ^ 15', () => {
+          let OTHER_VALUE;
+
+          beforeEach(() => {
+            VALUE = 21; // eslint-disable-line no-magic-numbers
+            OTHER_VALUE = 15; // eslint-disable-line no-magic-numbers
+          });
+
+          it('should set the value to 26', () => {
+            const code = `
+              const obj = { foo: ${VALUE} };
+              obj.foo ^= ${OTHER_VALUE};
+              obj.foo;
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.eq(VALUE ^ OTHER_VALUE); // eslint-disable-line no-bitwise
+          });
+
+          it('should return 26', () => {
+            const code = `
+              const obj = { foo: ${VALUE} };
+              obj.foo ^= ${OTHER_VALUE};
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.eq(VALUE ^ OTHER_VALUE); // eslint-disable-line no-bitwise
+          });
+        });
+      });
+
+      describe('<<=', () => {
+        context('when 20.5 << 1', () => {
+          beforeEach(() => {
+            VALUE = 20.5; // eslint-disable-line no-magic-numbers
+          });
+
+          it('should set the value to 40', () => {
+            const code = `
+              const obj = { foo: ${VALUE} };
+              obj.foo <<= 1;
+              obj.foo;
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.eq(VALUE << 1); // eslint-disable-line no-bitwise
+          });
+
+          it('should return 40', () => {
+            const code = `
+              const obj = { foo: ${VALUE} };
+              obj.foo <<= 1;
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.eq(VALUE << 1); // eslint-disable-line no-bitwise
+          });
+        });
+      });
+
+      describe('>>>=', () => {
+        context('when -10 >>> 1', () => {
+          beforeEach(() => {
+            VALUE = -10; // eslint-disable-line no-magic-numbers
+          });
+
+          it('should set the value to 2147483643', () => {
+            const code = `
+              const obj = { foo: ${VALUE} };
+              obj.foo >>>= 1;
+              obj.foo;
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.eq(VALUE >>> 1); // eslint-disable-line no-bitwise
+          });
+
+          it('should return 2147483643', () => {
+            const code = `
+              const obj = { foo: ${VALUE} };
+              obj.foo >>>= 1;
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.eq(VALUE >>> 1); // eslint-disable-line no-bitwise
+          });
         });
       });
     });
 
-    context('when decrementing an accessed property', () => {
-      context('when postfix', () => {
-        it('should decrement the property', () => {
-          const code = `
-            const obj = { foo: 0 };
-            obj.foo--;
-            obj.foo;
-          `;
+    describe('updateExpression', () => {
+      context('when incrementing an accessed property', () => {
+        context('when postfix', () => {
+          it('should increment the property', () => {
+            const code = `
+              const obj = { foo: 0 };
+              obj.foo++;
+              obj.foo;
+            `;
 
-          const output = buildRun(code);
+            const output = buildRun(code);
 
-          expect(output).to.eq(-1);
+            expect(output).to.eq(1);
+          });
+
+          it('should return the not incremented property', () => {
+            const code = `
+              const obj = { foo: 0 };
+              obj.foo++;
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.eq(0);
+          });
         });
 
-        it('should return the not decremented property', () => {
-          const code = `
-            const obj = { foo: 0 };
-            obj.foo--;
-          `;
+        context('when prefix', () => {
+          it('should increment the property', () => {
+            const code = `
+              const obj = { foo: 0 };
+              ++obj.foo;
+              obj.foo;
+            `;
 
-          const output = buildRun(code);
+            const output = buildRun(code);
 
-          expect(output).to.eq(0);
+            expect(output).to.eq(1);
+          });
+
+          it('should return the incremented property', () => {
+            const code = `
+              const obj = { foo: 0 };
+              ++obj.foo;
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.eq(1);
+          });
         });
       });
 
-      context('when prefix', () => {
-        it('should decrement the property', () => {
-          const code = `
-            const obj = { foo: 0 };
-            --obj.foo;
-            obj.foo;
-          `;
+      context('when decrementing an accessed property', () => {
+        context('when postfix', () => {
+          it('should decrement the property', () => {
+            const code = `
+              const obj = { foo: 0 };
+              obj.foo--;
+              obj.foo;
+            `;
 
-          const output = buildRun(code);
+            const output = buildRun(code);
 
-          expect(output).to.eq(-1);
+            expect(output).to.eq(-1);
+          });
+
+          it('should return the not decremented property', () => {
+            const code = `
+              const obj = { foo: 0 };
+              obj.foo--;
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.eq(0);
+          });
         });
 
-        it('should return the decremented property', () => {
-          const code = `
-            const obj = { foo: 0 };
-            --obj.foo;
-          `;
+        context('when prefix', () => {
+          it('should decrement the property', () => {
+            const code = `
+              const obj = { foo: 0 };
+              --obj.foo;
+              obj.foo;
+            `;
 
-          const output = buildRun(code);
+            const output = buildRun(code);
 
-          expect(output).to.eq(-1);
+            expect(output).to.eq(-1);
+          });
+
+          it('should return the decremented property', () => {
+            const code = `
+              const obj = { foo: 0 };
+              --obj.foo;
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.eq(-1);
+          });
+        });
+      });
+    });
+  });
+
+  context('when using a proxy', () => {
+    describe('assignmentExpression', () => {
+      describe('+=', () => {
+        context('when incrementing by 1', () => {
+          it('should add 1 to the property', () => {
+            const code = `
+              const obj = new Proxy({ foo: ${VALUE} }, {});
+              obj.foo += 1;
+              obj.foo;
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.eq(VALUE + 1);
+          });
+
+          it('should return the property plus 1', () => {
+            const code = `
+              const obj = new Proxy({ foo: ${VALUE} }, {});
+              obj.foo += 1;
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.eq(VALUE + 1);
+          });
+        });
+      });
+
+      describe('-=', () => {
+        context('when decrementing by 1', () => {
+          it('should remove 1 to the property', () => {
+            const code = `
+              const obj = new Proxy({ foo: ${VALUE} }, {});
+              obj.foo -= 1;
+              obj.foo;
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.eq(VALUE - 1);
+          });
+
+          it('should return the property minus 1', () => {
+            const code = `
+              const obj = new Proxy({ foo: ${VALUE} }, {});
+              obj.foo -= 1;
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.eq(VALUE - 1);
+          });
+        });
+      });
+
+      describe('*=', () => {
+        context('when multiplying by 2', () => {
+          it('should multiply the property by 2', () => {
+            const n = 2;
+            const code = `
+              const obj = new Proxy({ foo: ${VALUE} }, {});
+              obj.foo *= ${n};
+              obj.foo;
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.eq(VALUE * n);
+          });
+
+          it('should return the property multiplied by 2', () => {
+            const n = 2;
+            const code = `
+              const obj = new Proxy({ foo: ${VALUE} }, {});
+              obj.foo *= ${n};
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.eq(VALUE * n);
+          });
+        });
+      });
+
+      describe('/=', () => {
+        context('when dividing by 2', () => {
+          it('should divide the property by 2', () => {
+            const n = 2;
+            const code = `
+              const obj = new Proxy({ foo: ${VALUE} }, {});
+              obj.foo /= ${n};
+              obj.foo;
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.eq(VALUE / n);
+          });
+
+          it('should return the property divided by 2', () => {
+            const n = 2;
+            const code = `
+              const obj = new Proxy({ foo: ${VALUE} }, {});
+              obj.foo /= ${n};
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.eq(VALUE / n);
+          });
+        });
+      });
+
+      describe('%=', () => {
+        context('when modulusing by 2', () => {
+          it('should modulus the property by 2', () => {
+            const n = 2;
+            const multiplier = 10;
+            const NEW_VALUE = VALUE * multiplier;
+
+            const code = `
+              const obj = new Proxy({ foo: ${NEW_VALUE} }, {});
+              obj.foo %= ${n};
+              obj.foo;
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.eq(NEW_VALUE % n);
+          });
+
+          it('should return the property modulus 2', () => {
+            const n = 2;
+            const multiplier = 10;
+            const NEW_VALUE = VALUE * multiplier;
+            const code = `
+              const obj = new Proxy({ foo: ${NEW_VALUE} }, {});
+              obj.foo %= ${n};
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.eq(NEW_VALUE % n);
+          });
+        });
+      });
+
+      describe('&=', () => {
+        context('when 21 & 15', () => {
+          let OTHER_VALUE;
+
+          beforeEach(() => {
+            VALUE = 21; // eslint-disable-line no-magic-numbers
+            OTHER_VALUE = 15; // eslint-disable-line no-magic-numbers
+          });
+
+          it('should set the value to 5', () => {
+            const code = `
+              const obj = new Proxy({ foo: ${VALUE} }, {});
+              obj.foo &= ${OTHER_VALUE};
+              obj.foo;
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.eq(VALUE & OTHER_VALUE); // eslint-disable-line no-bitwise
+          });
+
+          it('should return 5', () => {
+            const code = `
+              const obj = new Proxy({ foo: ${VALUE} }, {});
+              obj.foo &= ${OTHER_VALUE};
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.eq(VALUE & OTHER_VALUE); // eslint-disable-line no-bitwise
+          });
+        });
+      });
+
+      describe('|=', () => {
+        context('when 21 | 15', () => {
+          let OTHER_VALUE;
+
+          beforeEach(() => {
+            VALUE = 21; // eslint-disable-line no-magic-numbers
+            OTHER_VALUE = 15; // eslint-disable-line no-magic-numbers
+          });
+
+          it('should set the value to 31', () => {
+            const code = `
+              const obj = new Proxy({ foo: ${VALUE} }, {});
+              obj.foo |= ${OTHER_VALUE};
+              obj.foo;
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.eq(VALUE | OTHER_VALUE); // eslint-disable-line no-bitwise
+          });
+
+          it('should return 31', () => {
+            const code = `
+              const obj = new Proxy({ foo: ${VALUE} }, {});
+              obj.foo |= ${OTHER_VALUE};
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.eq(VALUE | OTHER_VALUE); // eslint-disable-line no-bitwise
+          });
+        });
+      });
+
+      describe('^=', () => {
+        context('when 21 ^ 15', () => {
+          let OTHER_VALUE;
+
+          beforeEach(() => {
+            VALUE = 21; // eslint-disable-line no-magic-numbers
+            OTHER_VALUE = 15; // eslint-disable-line no-magic-numbers
+          });
+
+          it('should set the value to 26', () => {
+            const code = `
+              const obj = new Proxy({ foo: ${VALUE} }, {});
+              obj.foo ^= ${OTHER_VALUE};
+              obj.foo;
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.eq(VALUE ^ OTHER_VALUE); // eslint-disable-line no-bitwise
+          });
+
+          it('should return 26', () => {
+            const code = `
+              const obj = new Proxy({ foo: ${VALUE} }, {});
+              obj.foo ^= ${OTHER_VALUE};
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.eq(VALUE ^ OTHER_VALUE); // eslint-disable-line no-bitwise
+          });
+        });
+      });
+
+      describe('<<=', () => {
+        context('when 20.5 << 1', () => {
+          beforeEach(() => {
+            VALUE = 20.5; // eslint-disable-line no-magic-numbers
+          });
+
+          it('should set the value to 40', () => {
+            const code = `
+              const obj = new Proxy({ foo: ${VALUE} }, {});
+              obj.foo <<= 1;
+              obj.foo;
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.eq(VALUE << 1); // eslint-disable-line no-bitwise
+          });
+
+          it('should return 40', () => {
+            const code = `
+              const obj = new Proxy({ foo: ${VALUE} }, {});
+              obj.foo <<= 1;
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.eq(VALUE << 1); // eslint-disable-line no-bitwise
+          });
+        });
+      });
+
+      describe('>>>=', () => {
+        context('when -10 >>> 1', () => {
+          beforeEach(() => {
+            VALUE = -10; // eslint-disable-line no-magic-numbers
+          });
+
+          it('should set the value to 2147483643', () => {
+            const code = `
+              const obj = new Proxy({ foo: ${VALUE} }, {});
+              obj.foo >>>= 1;
+              obj.foo;
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.eq(VALUE >>> 1); // eslint-disable-line no-bitwise
+          });
+
+          it('should return 2147483643', () => {
+            const code = `
+              const obj = new Proxy({ foo: ${VALUE} }, {});
+              obj.foo >>>= 1;
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.eq(VALUE >>> 1); // eslint-disable-line no-bitwise
+          });
+        });
+      });
+    });
+
+    describe('updateExpression', () => {
+      context('when incrementing an accessed property', () => {
+        context('when postfix', () => {
+          it('should increment the property', () => {
+            const code = `
+              const obj = new Proxy({ foo: 0 }, {});
+              obj.foo++;
+              obj.foo;
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.eq(1);
+          });
+
+          it('should return the not incremented property', () => {
+            const code = `
+              const obj = new Proxy({ foo: 0 }, {});
+              obj.foo++;
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.eq(0);
+          });
+        });
+
+        context('when prefix', () => {
+          it('should increment the property', () => {
+            const code = `
+              const obj = new Proxy({ foo: 0 }, {});
+              ++obj.foo;
+              obj.foo;
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.eq(1);
+          });
+
+          it('should return the incremented property', () => {
+            const code = `
+              const obj = new Proxy({ foo: 0 }, {});
+              ++obj.foo;
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.eq(1);
+          });
+        });
+      });
+
+      context('when decrementing an accessed property', () => {
+        context('when postfix', () => {
+          it('should decrement the property', () => {
+            const code = `
+              const obj = new Proxy({ foo: 0 }, {});
+              obj.foo--;
+              obj.foo;
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.eq(-1);
+          });
+
+          it('should return the not decremented property', () => {
+            const code = `
+              const obj = new Proxy({ foo: 0 }, {});
+              obj.foo--;
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.eq(0);
+          });
+        });
+
+        context('when prefix', () => {
+          it('should decrement the property', () => {
+            const code = `
+              const obj = new Proxy({ foo: 0 }, {});
+              --obj.foo;
+              obj.foo;
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.eq(-1);
+          });
+
+          it('should return the decremented property', () => {
+            const code = `
+              const obj = new Proxy({ foo: 0 }, {});
+              --obj.foo;
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.eq(-1);
+          });
         });
       });
     });
