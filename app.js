@@ -158,7 +158,10 @@ module.exports = ({ types } = {}, options = {}) => {
                     ),
                     types.identifier('call'),
                   ),
-                  [types.identifier(tempVariableName)],
+                  [
+                    types.identifier(tempVariableName),
+                    ...path.node.arguments,
+                  ],
                 ),
               ),
             ],
