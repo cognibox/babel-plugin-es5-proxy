@@ -52,6 +52,19 @@ describe('babel-plugin-es5-proxy @medium', () => {
         expect(output).to.include('__eval');
       });
 
+      it('should have access to the local scope', () => {
+        const code = `
+          function foo(bar) {
+            return eval('bar');
+          }
+          foo(${VALUE});
+        `;
+
+        const output = buildRun(code);
+
+        expect(output).to.eq(VALUE);
+      });
+
       context('when using es6 syntax', () => {
         it('should not import core-js', () => {
           const code = `eval("var obj = { bar: ${VALUE} }; typeof obj.bar;")`;

@@ -68,6 +68,19 @@ module.exports = ({ types } = {}, options = {}) => {
     return property;
   }
 
+  const restoreEvalNodes = {
+    CallExpression(path) {
+      if (path.node.callee.name === evalName) {
+        path.replaceWith(
+          types.callExpression(
+            types.identifier('eval'),
+            path.node.arguments,
+          ),
+        );
+      }
+    },
+  };
+
   const nodes = {
     AssignmentExpression(path) {
       if (path.node.left.type !== 'MemberExpression') return;
@@ -256,6 +269,7 @@ module.exports = ({ types } = {}, options = {}) => {
         setVariableNames();
 
         path.traverse(nodes);
+        path.traverse(restoreEvalNodes);
 
         addRuntimeToFile(path);
       },
