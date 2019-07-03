@@ -1305,6 +1305,17 @@ describe('babel-plugin-es5-proxy @medium', () => {
             expect(output).to.equal(VALUE);
           });
 
+          it('should pass arguments', () => {
+            const code = `
+              const obj = new Proxy({ baz: ${VALUE}, bar: function(property) { return this[property]; } });
+              obj.bar('baz');
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.equal(VALUE);
+          });
+
           context('when the function is in an array', () => {
             it('should call the function', () => {
               const code = `
