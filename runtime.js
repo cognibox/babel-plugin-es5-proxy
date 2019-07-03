@@ -1,12 +1,3 @@
-function defaultGet(object, property) {
-  return object[property];
-}
-
-function defaultSet(object, property, value) {
-  object[property] = value;
-  return value;
-}
-
 function globalGetter(object, propertyName) { // eslint-disable-line no-unused-vars
   return (isProxy(object)) ? object.get(propertyName) : object[propertyName];
 }
@@ -25,10 +16,10 @@ function isProxy(object) {
 
 function Proxy(target, handlers = {}) { // eslint-disable-line no-unused-vars
   this.get = function(property) {
-    return (handlers.get || defaultGet)(target, property);
+    return (handlers.get || globalGetter)(target, property);
   };
 
   this.set = function(property, value) {
-    return (handlers.set || defaultSet)(target, property, value);
+    return (handlers.set || globalSetter)(target, property, value);
   };
 }
