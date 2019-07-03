@@ -1,5 +1,5 @@
 # babel-plugin-es5-proxy
-Babel plugin to use ES6 Proxy in ES5. Inspired by the work of https://github.com/krzkaczor/babel-plugin-proxy, fixed for babel7.
+Babel plugin to use ES6 Proxy in ES5. Inspired by the work of https://github.com/krzkaczor/babel-plugin-proxy, fixed for babel7 (and a lot more).
 
 ## Installation
 ```shell

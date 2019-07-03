@@ -28,10 +28,11 @@ function addRuntimeToFile(path) {
 
 function computePresets({ useBuiltIns, targets, modules }) {
   if (typeof targets === 'undefined') {
-    targets = { ie: 9, uglify: true };
+    targets = { ie: 9 };
   }
 
   const presentEnvConf = {
+    forceAllTransforms: true,
     useBuiltIns: useBuiltIns || false,
     targets,
     modules: modules || false,
@@ -71,16 +72,30 @@ module.exports = ({ types } = {}, options = {}) => {
     AssignmentExpression(path) {
       if (path.node.left.type !== 'MemberExpression') return;
 
-      path.replaceWith(
-        types.callExpression(
-          types.identifier(globalSetterName),
-          [
-            path.node.left.object,
-            computeProperty(path.node.left.property, path.node.left),
-            path.node.right,
-          ],
-        )
-      );
+      if (path.node.operator === '=') {
+        path.replaceWith(
+          types.callExpression(
+            types.identifier(globalSetterName),
+            [
+              path.node.left.object,
+              computeProperty(path.node.left.property, path.node.left),
+              path.node.right,
+            ],
+          )
+        );
+      } else {
+        path.replaceWith(
+          types.assignmentExpression(
+            '=',
+            path.node.left,
+            types.binaryExpression(
+              path.node.operator.replace('=', ''),
+              path.node.left,
+              path.node.right,
+            ),
+          ),
+        );
+      }
     },
     CallExpression(path) {
       if (path.node.callee.name === globalGetterName || path.node.callee.name === globalSetterName) return;
