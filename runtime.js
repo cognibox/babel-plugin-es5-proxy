@@ -1,10 +1,9 @@
 function defaultGet(object, property) {
-  return object[property];
+  return globalGetter(object, property);
 }
 
 function defaultSet(object, property, value) {
-  object[property] = value;
-  return value;
+  return globalSetter(object, property, value);
 }
 
 function globalGetter(object, propertyName) { // eslint-disable-line no-unused-vars
