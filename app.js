@@ -168,6 +168,71 @@ module.exports = ({ types } = {}, options = {}) => {
         ),
       );
     },
+    UpdateExpression(path) {
+      if (path.node.argument.type !== 'MemberExpression') return;
+
+      if (path.node.operator === '++') {
+        if (path.node.prefix) {
+          path.replaceWith(
+            types.assignmentExpression(
+              '=',
+              path.node.argument,
+              types.binaryExpression(
+                '+',
+                path.node.argument,
+                types.numericLiteral(1),
+              ),
+            ),
+          );
+        } else {
+          path.replaceWith(
+            types.binaryExpression(
+              '-',
+              types.assignmentExpression(
+                '=',
+                path.node.argument,
+                types.binaryExpression(
+                  '+',
+                  path.node.argument,
+                  types.numericLiteral(1),
+                ),
+              ),
+              types.numericLiteral(1),
+            )
+          );
+        }
+      } else if (path.node.operator === '--') {
+        if (path.node.prefix) {
+          path.replaceWith(
+            types.assignmentExpression(
+              '=',
+              path.node.argument,
+              types.binaryExpression(
+                '-',
+                path.node.argument,
+                types.numericLiteral(1),
+              ),
+            ),
+          );
+        } else {
+          path.replaceWith(
+            types.binaryExpression(
+              '+',
+              types.assignmentExpression(
+                '=',
+                path.node.argument,
+                types.binaryExpression(
+                  '-',
+                  path.node.argument,
+                  types.numericLiteral(1),
+                ),
+              ),
+              types.numericLiteral(1),
+            )
+          );
+        }
+      }
+    },
   };
 
   return {
