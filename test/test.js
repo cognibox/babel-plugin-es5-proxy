@@ -79,7 +79,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
           expect(output).to.eq(1);
         });
 
-        it('should return the incremented property', () => {
+        it('should return the not incremented property', () => {
           const code = `
             const obj = { foo: 0 };
             obj.foo++;
@@ -104,7 +104,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
           expect(output).to.eq(1);
         });
 
-        it('should return the not incremented property', () => {
+        it('should return the incremented property', () => {
           const code = `
             const obj = { foo: 0 };
             ++obj.foo;
