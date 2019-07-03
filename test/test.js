@@ -64,6 +64,112 @@ describe('babel-plugin-es5-proxy @medium', () => {
     });
   });
 
+  describe('updateExpression', () => {
+    context('when incrementing an accessed property', () => {
+      context('when postfix', () => {
+        it('should increment the property', () => {
+          const code = `
+            const obj = { foo: 0 };
+            obj.foo++;
+            obj.foo;
+          `;
+
+          const output = buildRun(code);
+
+          expect(output).to.eq(1);
+        });
+
+        it('should return the not incremented property', () => {
+          const code = `
+            const obj = { foo: 0 };
+            obj.foo++;
+          `;
+
+          const output = buildRun(code);
+
+          expect(output).to.eq(0);
+        });
+      });
+
+      context('when prefix', () => {
+        it('should increment the property', () => {
+          const code = `
+            const obj = { foo: 0 };
+            ++obj.foo;
+            obj.foo;
+          `;
+
+          const output = buildRun(code);
+
+          expect(output).to.eq(1);
+        });
+
+        it('should return the incremented property', () => {
+          const code = `
+            const obj = { foo: 0 };
+            ++obj.foo;
+          `;
+
+          const output = buildRun(code);
+
+          expect(output).to.eq(1);
+        });
+      });
+    });
+
+    context('when decrementing an accessed property', () => {
+      context('when postfix', () => {
+        it('should decrement the property', () => {
+          const code = `
+            const obj = { foo: 0 };
+            obj.foo--;
+            obj.foo;
+          `;
+
+          const output = buildRun(code);
+
+          expect(output).to.eq(-1);
+        });
+
+        it('should return the not decremented property', () => {
+          const code = `
+            const obj = { foo: 0 };
+            obj.foo--;
+          `;
+
+          const output = buildRun(code);
+
+          expect(output).to.eq(0);
+        });
+      });
+
+      context('when prefix', () => {
+        it('should decrement the property', () => {
+          const code = `
+            const obj = { foo: 0 };
+            --obj.foo;
+            obj.foo;
+          `;
+
+          const output = buildRun(code);
+
+          expect(output).to.eq(-1);
+        });
+
+        it('should return the decremented property', () => {
+          const code = `
+            const obj = { foo: 0 };
+            --obj.foo;
+          `;
+
+          const output = buildRun(code);
+
+          expect(output).to.eq(-1);
+        });
+      });
+    });
+  });
+
   describe('globalGetter', () => {
     context('when accessing on regular object', () => {
       context('when property is not a function', () => {
