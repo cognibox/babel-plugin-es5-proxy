@@ -1351,7 +1351,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
                   bar: function() { return this.baz },
                   baz: ${VALUE}
                 }, {
-                  get: function(object, property) { return object.bar; }
+                  get: function(object, property) { return object[property]; }
                 });
                 obj.bar();
               `;
