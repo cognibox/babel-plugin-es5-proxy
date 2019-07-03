@@ -1,5 +1,3 @@
-var _eval = eval; //eslint-disable-line no-eval, no-unused-vars, no-var
-
 function defaultGet(property) {
   return this[property]; // eslint-disable-line no-invalid-this
 }
