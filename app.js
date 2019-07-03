@@ -123,7 +123,7 @@ module.exports = ({ types } = {}, options = {}) => {
                 babel.transform(
                   path.node.arguments[0].value,
                   {
-                    plugins: [require.resolve('./app.js')],
+                    plugins: [[require.resolve('./app.js'), { isChildProcess: true }]],
                     presets: computePresets(options),
                   }
                 ).code,
@@ -272,7 +272,7 @@ module.exports = ({ types } = {}, options = {}) => {
         path.traverse(nodes);
         path.traverse(restoreEvalNodes);
 
-        addRuntimeToFile(path);
+        if (!options.isChildProcess) addRuntimeToFile(path);
       },
     },
   };

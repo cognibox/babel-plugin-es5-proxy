@@ -25,6 +25,16 @@ describe('babel-plugin-es5-proxy @medium', () => {
   });
 
   describe('eval', () => {
+    it('should declare function from runtime only once', () => {
+      const code = `eval("var foo = ${VALUE};")`;
+      const output = build(code).code;
+
+      const regex = /function\s__global_getter/g;
+      const matching = output.match(regex);
+
+      expect(matching.length).to.equal(1);
+    });
+
     context('when calling eval in eval', () => {
       it('should return the value of the eval', () => {
         const code = `
@@ -61,6 +71,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
         it('should not import core-js', () => {
           const code = `eval("var obj = { bar: ${VALUE} }; typeof obj.bar;")`;
           const output = build(code).code;
+
           expect(output).to.include('function _typeof');
           expect(output).to.not.include('core-js');
           expect(output).to.not.include('runtime-corejs2');
