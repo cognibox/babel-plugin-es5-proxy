@@ -1092,29 +1092,60 @@ describe('babel-plugin-es5-proxy @medium', () => {
     });
   });
 
-  describe.only('for in', () => {
-    context('when looping on a object', () => {
-      it('should loop over the object', () => {
-        const code = `
-          for (var a in { [${VALUE}]: true }) a
-        `;
+  describe.only('enumerable', () => {
+    describe('for in', () => {
+      context('when looping on a object', () => {
+        it('should loop over the object', () => {
+          const code = `
+            for (var a in { [${VALUE}]: true }) a
+          `;
 
-        const output = buildRun(code);
+          const output = buildRun(code);
 
-        expect(output).to.equal(`${VALUE}`);
+          expect(output).to.equal(`${VALUE}`);
+        });
+      });
+
+      context('when looping on a proxy', () => {
+        it('should loop over the target', () => {
+          const code = `
+            const foo = new Proxy({[${VALUE}]: true}, {})
+            for (var a in foo) a
+          `;
+
+          const output = buildRun(code);
+
+          expect(output).to.equal(`${VALUE}`);
+        });
       });
     });
 
-    context('when looping on a proxy', () => {
-      it('should loop over the target', () => {
-        const code = `
-          const foo = new Proxy({[${VALUE}]: true}, {})
-          for (var a in foo) a
-        `;
+    describe('Object.keys', () => {
+      context('when calling on an object', () => {
+        it('should return object keys', () => {
+          const code = `
+            var obj = { a: 5, b: 3 };
+            Object.keys(obj);
+          `;
 
-        const output = buildRun(code);
+          const output = buildRun(code);
 
-        expect(output).to.equal(`${VALUE}`);
+          expect(output).to.deep.equal(['a', 'b']);
+        });
+      });
+
+      context('when calling on a proxy', () => {
+        it('should target keys', () => {
+          const code = `
+            var obj = { a: 5, b: 3 };
+            var proxy = new Proxy(obj, {});
+            Object.keys(proxy);
+          `;
+
+          const output = buildRun(code);
+
+          expect(output).to.deep.equal(['a', 'b']);
+        });
       });
     });
   });
