@@ -2,8 +2,29 @@ function globalDeleter(object, propertyName) {
   return isProxy(object) ? object.deleteProperty(propertyName) : delete object[propertyName];
 }
 
+function globalPropertyDefiner(object, propertyName, descriptor) {
+  if (isProxy(object)) {
+    object.defineProperty(propertyName, descriptor);
+  } else {
+    Object.defineProperty(object, propertyName, descriptor);
+  }
+}
+
+function globalDeleter(object, propertyName) {
+  return isProxy(object) ? object.deleteProperty(propertyName) : delete object[propertyName];
+}
+
 function globalGetter(object, propertyName) {
-  return (isProxy(object)) ? object.get(propertyName) : object[propertyName];
+  var value;
+  if (isProxy(object)) {
+    value = object.get(propertyName);
+  } else {
+    value = object[propertyName];
+  }
+  if (value === Object.defineProperty) {
+    return globalPropertyDefiner;
+  }
+  return value;
 }
 
 function globalSetter(object, propertyName, value) {
@@ -25,6 +46,10 @@ function Proxy(target, handlers = {}) { // eslint-disable-line no-unused-vars
 
   this.set = function(property, value) {
     return (handlers.set || globalSetter)(target, property, value);
+  };
+
+  this.defineProperty = function(property, descriptor) {
+    Object.defineProperty(target, property, descriptor);
   };
 
   this.deleteProperty = function(property) {
