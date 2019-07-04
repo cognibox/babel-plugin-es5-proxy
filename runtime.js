@@ -67,7 +67,8 @@ function objectTarget(object) {
   return isProxy(object) ? object.target : object;
 }
 
-function Proxy(target, handlers = {}) { // eslint-disable-line no-unused-vars
+function Proxy(target, handlers) { // eslint-disable-line no-unused-vars
+  if (target === undefined || handlers === undefined) throw TypeError('Cannot create proxy with a non-object as target or handler');
   this.target = target;
   this.get = function(property) {
     return (handlers.get || globalGetter)(target, property);

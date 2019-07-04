@@ -1472,7 +1472,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
           context('when property is accessed with a period', () => {
             it('should return the value', () => {
               const code = `
-                const obj = new Proxy({ bar: ${VALUE} });
+                const obj = new Proxy({ bar: ${VALUE} }, {});
                 obj.bar;
               `;
 
@@ -1486,7 +1486,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
             context('when property is accessed with a literal', () => {
               it('should return the value', () => {
                 const code = `
-                  const obj = new Proxy({ bar: ${VALUE} });
+                  const obj = new Proxy({ bar: ${VALUE} }, {});
                   obj['bar'];
                 `;
 
@@ -1499,7 +1499,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
             context('when property is accessed with a variable', () => {
               it('should return the value', () => {
                 const code = `
-                  const obj = new Proxy({ bar: ${VALUE} });
+                  const obj = new Proxy({ bar: ${VALUE} }, {});
                   const baz = 'bar';
                   obj[baz];
                 `;
@@ -1515,7 +1515,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
         context('when property is a function', () => {
           it('should return the value', () => {
             const code = `
-              const obj = new Proxy({ bar: function() { return ${VALUE}; } });
+              const obj = new Proxy({ bar: function() { return ${VALUE}; } }, {});
               obj.bar();
             `;
 
@@ -1526,7 +1526,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
           it('should bind this to the right object', () => {
             const code = `
-              const obj = new Proxy({ baz: ${VALUE}, bar: function() { return this.baz; } });
+              const obj = new Proxy({ baz: ${VALUE}, bar: function() { return this.baz; } }, {});
               obj.bar();
             `;
 
@@ -1537,7 +1537,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
           it('should pass arguments', () => {
             const code = `
-              const obj = new Proxy({ baz: ${VALUE}, bar: function(property) { return this[property]; } });
+              const obj = new Proxy({ baz: ${VALUE}, bar: function(property) { return this[property]; } }, {});
               obj.bar('baz');
             `;
 
@@ -1549,7 +1549,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
           context('when the function is in an array', () => {
             it('should call the function', () => {
               const code = `
-                const obj = new Proxy({ bar: [function() { return ${VALUE}; }] });
+                const obj = new Proxy({ bar: [function() { return ${VALUE}; }]}, {});
                 obj.bar[0]();
               `;
 
@@ -1770,7 +1770,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
         context('when setting the property with a period', () => {
           it('should set the value', () => {
             const code = `
-              const obj = new Proxy({});
+              const obj = new Proxy({}, {});
               obj.bar = ${VALUE};
               obj.bar;
             `;
@@ -1782,7 +1782,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
           it('should return the assigned value', () => {
             const code = `
-              const obj = new Proxy({});
+              const obj = new Proxy({}, {});
               obj.bar = ${VALUE};
             `;
 
@@ -1795,7 +1795,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
         context('when setting the property with brackets', () => {
           it('should set the value', () => {
             const code = `
-              const obj = new Proxy({});
+              const obj = new Proxy({}, {});
               obj['bar'] = ${VALUE};
               obj.bar;
             `;

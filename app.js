@@ -16,7 +16,7 @@ function addRuntimeToFile(path) {
     .replace(/inObject/g, inObjectName)
     .replace(/isProxy/g, isProxyName)
     .replace(/objectTarget/g, objectTargetName)
-    .replace(/objectFunctionsName/g, objectFunctionsName)
+    .replace(/OBJECT_FUNCTIONS/g, objectFunctionsName)
     .replace(/Proxy/g, proxyName);
 
   path.unshiftContainer(
