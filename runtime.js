@@ -1,7 +1,31 @@
 /* eslint-disable prefer-rest-params, no-var */
+var OBJECT_FUNCTIONS = [
+  Object.assign,
+  Object.create,
+  Object.defineProperties,
+  Object.defineProperty,
+  Object.entries,
+  Object.freeze,
+  Object.fromEntries,
+  Object.getOwnPropertyDescriptor,
+  Object.getOwnPropertyDescriptors,
+  Object.getOwnPropertyNames,
+  Object.getOwnPropertySymbols,
+  Object.getPrototypeOf,
+  Object.is,
+  Object.isExtensible,
+  Object.isFrozen,
+  Object.isSealed,
+  Object.keys,
+  Object.preventExtensions,
+  Object.seal,
+  Object.setPrototypeOf,
+  Object.values,
+];
+
 function inObject(value) {
-  for (var prop of Object.getOwnPropertyNames(Object)) {
-    if (Object[prop] === value) return true;
+  for (var i = 0; i < OBJECT_FUNCTIONS.length; i++) {
+    if (OBJECT_FUNCTIONS[i] === value) return true;
   }
   return false;
 }
@@ -43,7 +67,8 @@ function objectTarget(object) {
   return isProxy(object) ? object.target : object;
 }
 
-function Proxy(target, handlers = {}) { // eslint-disable-line no-unused-vars
+function Proxy(target, handlers) { // eslint-disable-line no-unused-vars
+  if (target === undefined || handlers === undefined) throw TypeError('Cannot create proxy with a non-object as target or handler');
   this.target = target;
   this.get = function(property) {
     return (handlers.get || globalGetter)(target, property);

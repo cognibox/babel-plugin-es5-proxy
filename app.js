@@ -5,7 +5,7 @@ const thisModifierFunctions = ['apply', 'bind', 'call'];
 
 let variableIndex = 0;
 
-let evalName, globalDeleterName, globalGetterName, globalSetterName, inObjectName, isProxyName, objectTargetName, proxyName;
+let evalName, globalDeleterName, globalGetterName, globalSetterName, inObjectName, isProxyName, objectFunctionsName, objectTargetName, proxyName;
 
 function addRuntimeToFile(path) {
   const runtime = fs.readFileSync(require.resolve('./runtime.js'))
@@ -16,6 +16,7 @@ function addRuntimeToFile(path) {
     .replace(/inObject/g, inObjectName)
     .replace(/isProxy/g, isProxyName)
     .replace(/objectTarget/g, objectTargetName)
+    .replace(/OBJECT_FUNCTIONS/g, objectFunctionsName)
     .replace(/Proxy/g, proxyName);
 
   path.unshiftContainer(
@@ -53,6 +54,7 @@ function setVariableNames() {
   inObjectName = variableName('in_object');
   isProxyName = variableName('is_proxy');
   objectTargetName = variableName('object_target');
+  objectFunctionsName = variableName('object_functions');
   proxyName = variableName('proxy');
 }
 
