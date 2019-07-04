@@ -51,6 +51,10 @@ function globalGetter(object, propertyName) {
   return value;
 }
 
+function globalHas(object, propertyName) {
+  return isProxy(object) ? object.has(propertyName) : propertyName in object;
+}
+
 function globalSetter(object, propertyName, value) {
   if (isProxy(object)) {
     return object.set(propertyName, value);
@@ -70,8 +74,13 @@ function objectTarget(object) {
 function Proxy(target, handlers) { // eslint-disable-line no-unused-vars
   if (target === undefined || handlers === undefined) throw TypeError('Cannot create proxy with a non-object as target or handler');
   this.target = target;
+
   this.get = function(property) {
     return (handlers.get || globalGetter)(target, property);
+  };
+
+  this.has = function(property) {
+    return (handlers.has || globalHas)(target, property);
   };
 
   this.set = function(property, value) {
