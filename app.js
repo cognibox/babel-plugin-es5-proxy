@@ -5,17 +5,14 @@ const thisModifierFunctions = ['apply', 'bind', 'call'];
 
 let variableIndex = 0;
 
-let defaultGetName, defaultSetName, evalName, globalGetterName, globalSetterName, isProxyName, objectTargetName, proxyName;
+let evalName, globalGetterName, globalSetterName, isProxyName, proxyName;
 
 function addRuntimeToFile(path) {
   const runtime = fs.readFileSync(require.resolve('./runtime.js'))
     .toString()
-    .replace(/defaultGet/g, defaultGetName)
-    .replace(/defaultSet/g, defaultSetName)
     .replace(/isProxyName/g, isProxyName)
     .replace(/globalGetter/g, globalGetterName)
     .replace(/globalSetter/g, globalSetterName)
-    .replace(/objectTarget/g, objectTargetName)
     .replace(/Proxy/g, proxyName);
 
   path.unshiftContainer(
@@ -42,15 +39,12 @@ function computePresets({ useBuiltIns, targets, modules }) {
 }
 
 function setVariableNames() {
-  if (defaultGetName) return;
+  if (evalName) return;
 
-  defaultGetName = variableName('default_get');
-  defaultSetName = variableName('default_set');
   evalName = variableName('temp_eval');
   globalGetterName = variableName('global_getter');
   globalSetterName = variableName('global_setter');
   isProxyName = variableName('is_proxy');
-  objectTargetName = variableName('object_target');
   proxyName = variableName('proxy');
 }
 
@@ -161,10 +155,7 @@ module.exports = ({ types } = {}, options = {}) => {
                     types.identifier('call'),
                   ),
                   [
-                    types.callExpression(
-                      types.identifier(objectTargetName),
-                      [types.identifier(tempVariableName)],
-                    ),
+                    types.identifier(tempVariableName),
                     ...path.node.arguments,
                   ],
                 ),

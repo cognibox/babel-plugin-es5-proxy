@@ -24,6 +24,39 @@ describe('babel-plugin-es5-proxy @medium', () => {
     });
   });
 
+  describe('inception', () => {
+    context('when a proxy is in a proxy', () => {
+      context('when accessing a property', () => {
+        it('should call the getter in the inner proxy', () => {
+          const code = `
+            const inner = new Proxy({}, { get(object) { return ${VALUE}; } })
+            const obj = new Proxy(inner, {});
+            obj.foo;
+          `;
+
+          const output = buildRun(code);
+
+          expect(output).to.equal(VALUE);
+        });
+      });
+
+      context('when setting a property', () => {
+        it('should call the setter in the inner proxy', () => {
+          const code = `
+            const inner = new Proxy({}, { set(object) { object.foo = ${VALUE}; } })
+            const obj = new Proxy(inner, {});
+            obj.bar = 5;
+            obj.foo
+          `;
+
+          const output = buildRun(code);
+
+          expect(output).to.equal(VALUE);
+        });
+      });
+    });
+  });
+
   describe('eval', () => {
     it('should declare function from runtime only once', () => {
       const code = `eval("var foo = ${VALUE};")`;
@@ -1305,6 +1338,17 @@ describe('babel-plugin-es5-proxy @medium', () => {
             expect(output).to.equal(VALUE);
           });
 
+          it('should pass arguments', () => {
+            const code = `
+              const obj = new Proxy({ baz: ${VALUE}, bar: function(property) { return this[property]; } });
+              obj.bar('baz');
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.equal(VALUE);
+          });
+
           context('when the function is in an array', () => {
             it('should call the function', () => {
               const code = `
@@ -1351,7 +1395,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
                   bar: function() { return this.baz },
                   baz: ${VALUE}
                 }, {
-                  get: function(object, property) { return object.bar; }
+                  get: function(object, property) { return object[property]; }
                 });
                 obj.bar();
               `;
