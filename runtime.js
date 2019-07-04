@@ -1,3 +1,10 @@
+function inObject(value) {
+  for (var prop of Object.getOwnPropertyNames(Object)) {
+    if (Object[prop] === value) return true;
+  }
+  return false;
+}
+
 function globalDeleter(object, propertyName) {
   return isProxy(object) ? object.deleteProperty(propertyName) : delete object[propertyName];
 }
@@ -9,8 +16,10 @@ function globalGetter(object, propertyName) {
   } else {
     value = object[propertyName];
   }
-  if (value === Object.defineProperty) {
-    return globalPropertyDefiner;
+  if (inObject(value)) {
+    return function(object) {
+      return value(objectTarget(object));
+    };
   }
   return value;
 }
@@ -47,10 +56,6 @@ function Proxy(target, handlers = {}) { // eslint-disable-line no-unused-vars
 
   this.set = function(property, value) {
     return (handlers.set || globalSetter)(target, property, value);
-  };
-
-  this.defineProperty = function(property, descriptor) {
-    Object.defineProperty(target, property, descriptor);
   };
 
   this.deleteProperty = function(property) {
