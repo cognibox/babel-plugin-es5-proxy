@@ -1118,6 +1118,18 @@ describe('babel-plugin-es5-proxy @medium', () => {
           expect(output).to.equal(`${VALUE}`);
         });
       });
+
+      context('when looping on undefined', () => {
+        it('should not fail', () => {
+          const code = `
+            for (var a in undefined) a
+          `;
+
+          const output = buildRun(code);
+
+          expect(output).to.be.undefined;
+        });
+      });
     });
 
     describe('Object.keys', () => {

@@ -60,7 +60,7 @@ function globalSetter(object, propertyName, value) {
 }
 
 function isProxy(object) {
-  return object.constructor && object.constructor.name === 'Proxy';
+  return object && object.constructor && object.constructor.name === 'Proxy';
 }
 
 function objectTarget(object) {
