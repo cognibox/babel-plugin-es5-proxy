@@ -1092,7 +1092,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
     });
   });
 
-  describe.only('enumerable', () => {
+  describe('enumerable', () => {
     describe('for in', () => {
       context('when looping on a object', () => {
         it('should loop over the object', () => {

@@ -1,3 +1,4 @@
+/* eslint-disable prefer-rest-params, no-var */
 function inObject(value) {
   for (var prop of Object.getOwnPropertyNames(Object)) {
     if (Object[prop] === value) return true;
@@ -10,26 +11,20 @@ function globalDeleter(object, propertyName) {
 }
 
 function globalGetter(object, propertyName) {
-  var value; // eslint-disable-line no-var
+  var value;
   if (isProxy(object)) {
     value = object.get(propertyName);
   } else {
     value = object[propertyName];
   }
-  if (inObject(value)) {
-    return function(object) {
-      return value(objectTarget(object));
+  if (typeof value === 'function' && inObject(value)) {
+    return function() {
+      arguments[0] = objectTarget(arguments[0]);
+
+      return value.apply(Object, arguments);
     };
   }
   return value;
-}
-
-function globalPropertyDefiner(object, propertyName, descriptor) {
-  if (isProxy(object)) {
-    object.defineProperty(propertyName, descriptor);
-  } else {
-    Object.defineProperty(object, propertyName, descriptor);
-  }
 }
 
 function globalSetter(object, propertyName, value) {
@@ -62,3 +57,5 @@ function Proxy(target, handlers = {}) { // eslint-disable-line no-unused-vars
     return (handlers.deleteProperty || globalDeleter)(target, property);
   };
 }
+
+/* eslint-enable prefer-rest-params, no-var */
