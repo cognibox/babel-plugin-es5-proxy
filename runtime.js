@@ -1,4 +1,4 @@
-/* eslint-disable prefer-rest-params, no-var */
+/* eslint-disable prefer-rest-params, no-var, comma-dangle */
 var OBJECT_FUNCTIONS = [
   Object.assign,
   Object.create,
@@ -20,7 +20,7 @@ var OBJECT_FUNCTIONS = [
   Object.preventExtensions,
   Object.seal,
   Object.setPrototypeOf,
-  Object.values,
+  Object.values
 ];
 
 function inObject(value) {
@@ -92,4 +92,4 @@ function Proxy(target, handlers) { // eslint-disable-line no-unused-vars
   };
 }
 
-/* eslint-enable prefer-rest-params, no-var */
+/* eslint-enable prefer-rest-params, no-var, comma-dangle */
