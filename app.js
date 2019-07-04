@@ -5,7 +5,7 @@ const thisModifierFunctions = ['apply', 'bind', 'call'];
 
 let variableIndex = 0;
 
-let evalName, globalDeleterName, globalGetterName, globalSetterName, isProxyName, proxyName;
+let evalName, globalDeleterName, globalGetterName, globalSetterName, isProxyName, objectTargetName, proxyName;
 
 function addRuntimeToFile(path) {
   const runtime = fs.readFileSync(require.resolve('./runtime.js'))
@@ -14,6 +14,7 @@ function addRuntimeToFile(path) {
     .replace(/globalDeleter/g, globalDeleterName)
     .replace(/globalGetter/g, globalGetterName)
     .replace(/globalSetter/g, globalSetterName)
+    .replace(/objectTarget/g, objectTargetName)
     .replace(/Proxy/g, proxyName);
 
   path.unshiftContainer(
@@ -47,6 +48,7 @@ function setVariableNames() {
   globalGetterName = variableName('global_getter');
   globalSetterName = variableName('global_setter');
   isProxyName = variableName('is_proxy');
+  objectTargetName = variableName('object_target');
   proxyName = variableName('proxy');
 }
 
@@ -166,6 +168,20 @@ module.exports = ({ types } = {}, options = {}) => {
           ),
         );
       }
+    },
+    ForInStatement(path) {
+      if (path.node.right.type === 'CallExpression' && path.node.right.callee.name === objectTargetName) return;
+
+      path.replaceWith(
+        types.forInStatement(
+          path.node.left,
+          types.callExpression(
+            types.identifier(objectTargetName),
+            [path.node.right]
+          ),
+          path.node.body,
+        ),
+      );
     },
     MemberExpression(path) {
       if (thisModifierFunctions.includes(path.node.property.name)) return;
