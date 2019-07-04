@@ -953,6 +953,107 @@ describe('babel-plugin-es5-proxy @medium', () => {
     });
   });
 
+  describe('globalDeleter', () => {
+    context('when deleting on a regular object', () => {
+      it('should remove the property', () => {
+        const code = `
+          const obj = { bar: ${VALUE} };
+          delete obj.bar;
+          obj.bar;
+        `;
+
+        const output = buildRun(code);
+
+        expect(output).to.be.undefined;
+      });
+
+      it('should return true', () => {
+        const code = `
+          const obj = { bar: ${VALUE} };
+          delete obj.bar;
+        `;
+
+        const output = buildRun(code);
+
+        expect(output).to.be.true;
+      });
+    });
+
+    context('when deleting on a proxy', () => {
+      context('when no deleteProperty has been defined', () => {
+        it('should remove the property', () => {
+          const code = `
+          const obj = new Proxy({ bar: ${VALUE} }, {});
+          delete obj.bar;
+          obj.bar;
+        `;
+
+          const output = buildRun(code);
+
+          expect(output).to.be.undefined;
+        });
+      });
+
+      it('should return true', () => {
+        const code = `
+          const obj = new Proxy({ bar: ${VALUE} }, {});
+          delete obj.bar;
+        `;
+
+        const output = buildRun(code);
+
+        expect(output).to.be.true;
+      });
+    });
+
+    context('when a deleteProperty has been defined', () => {
+      it('should call the deleteProperty function', () => {
+        const code = `
+          const obj = new Proxy({}, {
+            deleteProperty(target, property) {
+              target[property] = ${VALUE};
+            }
+          });
+          delete obj.bar;
+          obj.bar;
+        `;
+
+        const output = buildRun(code);
+
+        expect(output).to.eq(VALUE);
+      });
+
+      it('should return the return value of the deleteProperty function', () => {
+        const code = `
+          const obj = new Proxy({}, {
+            deleteProperty(target, property) {
+              return ${VALUE};
+            }
+          });
+          delete obj.bar;
+        `;
+
+        const output = buildRun(code);
+
+        expect(output).to.eq(VALUE);
+      });
+
+      context('when the deleteProperty handler does nothing', () => {
+        it('should not delete the property', () => {
+          const code = `
+            const obj = new Proxy({ bar: ${VALUE} }, {deleteProperty(target, property) {}});
+            delete obj.bar;
+            obj.bar
+          `;
+
+          const output = buildRun(code);
+
+          expect(output).to.eq(VALUE);
+        });
+      });
+    });
+  });
+
   describe('globalGetter', () => {
     context('when accessing on regular object', () => {
       context('when property is not a function', () => {
