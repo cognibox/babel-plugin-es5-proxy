@@ -5,12 +5,13 @@ const thisModifierFunctions = ['apply', 'bind', 'call'];
 
 let variableIndex = 0;
 
-let evalName, globalGetterName, globalSetterName, isProxyName, proxyName;
+let evalName, globalDeleterName, globalGetterName, globalSetterName, isProxyName, proxyName;
 
 function addRuntimeToFile(path) {
   const runtime = fs.readFileSync(require.resolve('./runtime.js'))
     .toString()
     .replace(/isProxyName/g, isProxyName)
+    .replace(/globalDeleter/g, globalDeleterName)
     .replace(/globalGetter/g, globalGetterName)
     .replace(/globalSetter/g, globalSetterName)
     .replace(/Proxy/g, proxyName);
@@ -42,6 +43,7 @@ function setVariableNames() {
   if (evalName) return;
 
   evalName = variableName('temp_eval');
+  globalDeleterName = variableName('global_deleter');
   globalGetterName = variableName('global_getter');
   globalSetterName = variableName('global_setter');
   isProxyName = variableName('is_proxy');
@@ -173,7 +175,7 @@ module.exports = ({ types } = {}, options = {}) => {
           types.identifier(globalGetterName),
           [
             path.node.object,
-            computeProperty(path.node.property, path.node, types),
+            computeProperty(path.node.property, path.node),
           ],
         ),
       );
@@ -186,6 +188,23 @@ module.exports = ({ types } = {}, options = {}) => {
           types.identifier(proxyName),
           path.node.arguments,
         ),
+      );
+    },
+    UnaryExpression(path) {
+      if (path.node.operator !== 'delete') return;
+      if (path.node.argument.type !== 'MemberExpression') return;
+
+      path.replaceWith(
+        types.callExpression(
+          types.identifier(globalDeleterName),
+          [
+            path.node.argument.object,
+            computeProperty(
+              path.node.argument.property,
+              path.node.argument,
+            ),
+          ]
+        )
       );
     },
     UpdateExpression(path) {

@@ -1,8 +1,12 @@
-function globalGetter(object, propertyName) { // eslint-disable-line no-unused-vars
+function globalDeleter(object, propertyName) {
+  return isProxy(object) ? object.deleteProperty(propertyName) : delete object[propertyName];
+}
+
+function globalGetter(object, propertyName) {
   return (isProxy(object)) ? object.get(propertyName) : object[propertyName];
 }
 
-function globalSetter(object, propertyName, value) { // eslint-disable-line no-unused-vars
+function globalSetter(object, propertyName, value) {
   if (isProxy(object)) {
     return object.set(propertyName, value);
   }
@@ -21,5 +25,9 @@ function Proxy(target, handlers = {}) { // eslint-disable-line no-unused-vars
 
   this.set = function(property, value) {
     return (handlers.set || globalSetter)(target, property, value);
+  };
+
+  this.deleteProperty = function(property) {
+    return (handlers.deleteProperty || globalDeleter)(target, property);
   };
 }
