@@ -32,10 +32,12 @@ function computePresets({ useBuiltIns, targets, modules }) {
 
   const presentEnvConf = {
     forceAllTransforms: true,
-    useBuiltIns: useBuiltIns || false,
+    useBuiltIns,
     targets,
     modules: modules || false,
   };
+
+  if (!!useBuiltIns) { presentEnvConf.corejs = 3; } // eslint-disable-line no-extra-boolean-cast
 
   return [[require('@babel/preset-env').default, presentEnvConf]];
 }
