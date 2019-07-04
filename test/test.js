@@ -1054,6 +1054,44 @@ describe('babel-plugin-es5-proxy @medium', () => {
     });
   });
 
+  describe('defineProperty', () => {
+    context('when setting a property on a object', () => {
+      it('should define the property', () => {
+        const code = `
+          const obj = {};
+          Object.defineProperty(obj, 'foo', {
+            get() {
+              return ${VALUE};
+            },
+          });
+          obj.foo;
+        `;
+
+        const output = buildRun(code);
+
+        expect(output).to.equal(VALUE);
+      });
+    });
+
+    context('when setting a property on a proxy', () => {
+      it('should define the property on the target', () => {
+        const code = `
+          const obj = new Proxy({},{});
+          Object.defineProperty(obj, 'foo', {
+            get() {
+              return ${VALUE};
+            },
+          });
+          obj.foo;
+        `;
+
+        const output = buildRun(code);
+
+        expect(output).to.equal(VALUE);
+      });
+    });
+  });
+
   describe('globalGetter', () => {
     context('when accessing on regular object', () => {
       context('when property is not a function', () => {
