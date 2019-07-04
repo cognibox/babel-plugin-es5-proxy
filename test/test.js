@@ -1054,6 +1054,71 @@ describe('babel-plugin-es5-proxy @medium', () => {
     });
   });
 
+  describe('defineProperty', () => {
+    context('when setting a property on a object', () => {
+      it('should define the property', () => {
+        const code = `
+          const obj = {};
+          Object.defineProperty(obj, 'foo', {
+            get() {
+              return ${VALUE};
+            },
+          });
+          obj.foo;
+        `;
+
+        const output = buildRun(code);
+
+        expect(output).to.equal(VALUE);
+      });
+    });
+
+    context('when setting a property on a proxy', () => {
+      it('should define the property on the target', () => {
+        const code = `
+          const obj = new Proxy({},{});
+          Object.defineProperty(obj, 'foo', {
+            get() {
+              return ${VALUE};
+            },
+          });
+          obj.foo;
+        `;
+
+        const output = buildRun(code);
+
+        expect(output).to.equal(VALUE);
+      });
+    });
+  });
+
+  describe.only('for in', () => {
+    context('when looping on a object', () => {
+      it('should loop over the object', () => {
+        const code = `
+          for (var a in { [${VALUE}]: true }) a
+        `;
+
+        const output = buildRun(code);
+
+        expect(output).to.equal(`${VALUE}`);
+      });
+    });
+
+    context('when looping on a proxy', () => {
+      it('should loop over the target', () => {
+        const code = `
+          const foo = new Proxy({[${VALUE}]: true}, {})
+          for (var a in foo) a
+        `;
+
+        const output = buildRun(code);
+
+        expect(output).to.equal(`${VALUE}`);
+      });
+    });
+  });
+
   describe('globalGetter', () => {
     context('when accessing on regular object', () => {
       context('when property is not a function', () => {
