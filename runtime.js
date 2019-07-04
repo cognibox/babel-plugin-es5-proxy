@@ -1,7 +1,31 @@
 /* eslint-disable prefer-rest-params, no-var */
 function inObject(value) {
-  for (var prop of Object.getOwnPropertyNames(Object)) {
-    if (Object[prop] === value) return true;
+  var OBJECT_FUNCTIONS = [
+    Object.assign,
+    Object.getOwnPropertyDescriptor,
+    Object.getOwnPropertyDescriptors,
+    Object.getOwnPropertyNames,
+    Object.getOwnPropertySymbols,
+    Object.is,
+    Object.preventExtensions,
+    Object.seal,
+    Object.create,
+    Object.defineProperties,
+    Object.defineProperty,
+    Object.freeze,
+    Object.getPrototypeOf,
+    Object.setPrototypeOf,
+    Object.isExtensible,
+    Object.isFrozen,
+    Object.isSealed,
+    Object.keys,
+    Object.entries,
+    Object.values,
+    Object.fromEntries,
+  ];
+
+  for (var i = 0; i < OBJECT_FUNCTIONS.length; i++) {
+    if (OBJECT_FUNCTIONS[i] === value) return true;
   }
   return false;
 }
