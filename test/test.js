@@ -1054,6 +1054,78 @@ describe('babel-plugin-es5-proxy @medium', () => {
     });
   });
 
+  describe('globalHas', () => {
+    context('when looking for a key in an object', () => {
+      context('when the key is in the object', () => {
+        it('should return true', () => {
+          const code = `
+            'foo' in { 'foo': true };
+          `;
+
+          const output = buildRun(code);
+
+          expect(output).to.be.true;
+        });
+      });
+
+      context('when the key is not in the object', () => {
+        it('should return false', () => {
+          const code = `
+            'foo' in {};
+          `;
+
+          const output = buildRun(code);
+
+          expect(output).to.be.false;
+        });
+      });
+    });
+
+    context('when looking for a key in a proxy', () => {
+      context('when no handler has been defined', () => {
+        context('when the key is in the proxy', () => {
+          it('should return true', () => {
+            const code = `
+              'foo' in new Proxy({ 'foo': true }, {});
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.be.true;
+          });
+        });
+
+        context('when the key is not in the proxy', () => {
+          it('should return false', () => {
+            const code = `
+              'foo' in new Proxy({}, {});
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.be.false;
+          });
+        });
+      });
+
+      context('when a handler has been defined', () => {
+        it('should use the handler', () => {
+          const code = `
+            'foo' in new Proxy({}, {
+              has() {
+                return ${VALUE};
+              },
+            });
+          `;
+
+          const output = buildRun(code);
+
+          expect(output).to.eq(VALUE);
+        });
+      });
+    });
+  });
+
   describe('defineProperty', () => {
     context('when setting a property on a object', () => {
       it('should define the property', () => {
