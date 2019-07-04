@@ -3,7 +3,7 @@ function globalDeleter(object, propertyName) {
 }
 
 function globalGetter(object, propertyName) {
-  var value;
+  var value; // eslint-disable-line no-var
   if (isProxy(object)) {
     value = object.get(propertyName);
   } else {
