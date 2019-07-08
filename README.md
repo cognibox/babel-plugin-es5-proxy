@@ -55,7 +55,7 @@ becomes
 ```javascript
 let obj = {};
 let bar = 'fo';
-globalSetter(obj, bar + 'fo', 5);
+globalSetter(obj, bar + 'o', 5);
 globalGetter(obj, 'foo');
 ```
 When a proxy with a getter is defined, the call goes through the getter
