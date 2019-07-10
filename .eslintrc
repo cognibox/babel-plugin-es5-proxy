@@ -1,5 +1,5 @@
 {
-  "extends": "cbx",
+  "extends": "@cognibox/eslint-config-cbx",
   "globals": {
     "require": false,
     "process": false,
