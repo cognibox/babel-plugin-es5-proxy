@@ -1054,6 +1054,36 @@ describe('babel-plugin-es5-proxy @medium', () => {
     });
   });
 
+  describe('instanceof', () => {
+    context('on a regular object', () => {
+      it('should call apply instanceof to the target', () => {
+        const code = `
+          function Foo() {};
+          var foo = new Foo();
+          foo instanceof Foo;
+        `;
+
+        const output = buildRun(code);
+
+        expect(output).to.be.true;
+      });
+    });
+
+    context('on a proxy', () => {
+      it('should call apply instanceof to the target', () => {
+        const code = `
+          function Foo() {};
+          var foo = new Proxy(new Foo(), {});
+          foo instanceof Foo;
+        `;
+
+        const output = buildRun(code);
+
+        expect(output).to.be.true;
+      });
+    });
+  });
+
   describe('globalHas', () => {
     context('when looking for a key in an object', () => {
       context('when the key is in the object', () => {
