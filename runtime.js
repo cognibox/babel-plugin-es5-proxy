@@ -55,6 +55,10 @@ function globalHas(object, propertyName) {
   return isProxy(object) ? object.has(propertyName) : propertyName in object;
 }
 
+function globalInstanceof(object, cls) { // eslint-disable-line no-unused-vars
+  return isProxy(object) ? object.instanceOf(cls) : object instanceof cls;
+}
+
 function globalSetter(object, propertyName, value) {
   if (isProxy(object)) {
     return object.set(propertyName, value);
@@ -89,6 +93,10 @@ function Proxy(target, handlers) { // eslint-disable-line no-unused-vars
 
   this.deleteProperty = function(property) {
     return (handlers.deleteProperty || globalDeleter)(target, property);
+  };
+
+  this.instanceOf = function(cls) {
+    return this.target instanceof cls;
   };
 }
 

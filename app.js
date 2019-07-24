@@ -5,7 +5,17 @@ const thisModifierFunctions = ['apply', 'bind', 'call'];
 
 let variableIndex = 0;
 
-let evalName, globalDeleterName, globalGetterName, globalHasName, globalSetterName, inObjectName, isProxyName, objectFunctionsName, objectTargetName, proxyName;
+let evalName,
+    globalDeleterName,
+    globalGetterName,
+    globalHasName,
+    globalInstanceofName,
+    globalSetterName,
+    inObjectName,
+    isProxyName,
+    objectFunctionsName,
+    objectTargetName,
+    proxyName;
 
 function addRuntimeToFile(path) {
   const runtime = fs.readFileSync(require.resolve('./runtime.js'))
@@ -14,6 +24,7 @@ function addRuntimeToFile(path) {
     .replace(/globalGetter/g, globalGetterName)
     .replace(/globalHas/g, globalHasName)
     .replace(/globalSetter/g, globalSetterName)
+    .replace(/globalInstanceof/g, globalInstanceofName)
     .replace(/inObject/g, inObjectName)
     .replace(/isProxy/g, isProxyName)
     .replace(/objectTarget/g, objectTargetName)
@@ -52,6 +63,7 @@ function setVariableNames() {
   globalDeleterName = variableName('global_deleter');
   globalGetterName = variableName('global_getter');
   globalHasName = variableName('global_has');
+  globalInstanceofName = variableName('global_instanceof');
   globalSetterName = variableName('global_setter');
   inObjectName = variableName('in_object');
   isProxyName = variableName('is_proxy');
@@ -118,17 +130,27 @@ module.exports = ({ types } = {}, options = {}) => {
       }
     },
     BinaryExpression(path) {
-      if (path.node.operator !== 'in') return;
-
-      path.replaceWith(
-        types.callExpression(
-          types.identifier(globalHasName),
-          [
-            path.node.right,
-            path.node.left,
-          ]
-        ),
-      );
+      if (path.node.operator === 'in') {
+        path.replaceWith(
+          types.callExpression(
+            types.identifier(globalHasName),
+            [
+              path.node.right,
+              path.node.left,
+            ]
+          ),
+        );
+      } else if (path.node.operator === 'instanceof') {
+        path.replaceWith(
+          types.callExpression(
+            types.identifier(globalInstanceofName),
+            [
+              path.node.left,
+              path.node.right,
+            ],
+          ),
+        );
+      }
     },
     CallExpression(path) {
       if (path.node.callee.name === globalGetterName || path.node.callee.name === globalSetterName) return;
