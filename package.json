@@ -1,6 +1,6 @@
 {
   "name": "@cognibox/babel-plugin-es5-proxy",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "",
   "main": "app.js",
   "author": "Cognibox",
@@ -23,5 +23,9 @@
     "chai": "^4.2.0",
     "eslint": "^5.16.0",
     "mocha": "^6.1.4"
-  }
+  },
+  "files": [
+    "app.js",
+    "runtime.js"
+  ]
 }
