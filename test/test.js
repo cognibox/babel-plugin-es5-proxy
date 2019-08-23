@@ -8,6 +8,32 @@ describe('babel-plugin-es5-proxy @medium', () => {
     VALUE = Math.random();
   });
 
+  // describe('JSON strignify', () => {
+  //   context('when stringifying an object', () => {
+  //     it('should stringify the object', () => {
+  //       const code = `
+  //         let obj = { foo: 'bar' };
+  //         JSON.stringify(obj)
+  //       `;
+  //       const output = buildRun(code);
+
+  //       expect(output).to.equal('{\"foo\":\"bar\"}');
+  //     });
+  //   });
+
+  //   context('when stringifying a proxy', () => {
+  //     it('should stringify the target', () => {
+  //       const code = `
+  //         let obj = new Proxy({foo: 'bar'}, {});
+  //         JSON.stringify(obj)
+  //       `;
+  //       const output = buildRun(code);
+
+  //       expect(output).to.equal('{\"foo\":\"bar\"}');
+  //     });
+  //   });
+  // });
+
   describe('regular assignment', () => {
     context('when assigning a literal to a variable', () => {
       it('should return the value', () => {
