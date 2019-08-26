@@ -1,34 +1,7 @@
 /* eslint-disable prefer-rest-params, no-var, comma-dangle */
 
-var OBJECT_FUNCTIONS = [
-  Object.assign,
-  Object.create,
-  Object.defineProperties,
-  Object.defineProperty,
-  Object.entries,
-  Object.freeze,
-  Object.fromEntries,
-  Object.getOwnPropertyDescriptor,
-  Object.getOwnPropertyDescriptors,
-  Object.getOwnPropertyNames,
-  Object.getOwnPropertySymbols,
-  Object.getPrototypeOf,
-  Object.is,
-  Object.isExtensible,
-  Object.isFrozen,
-  Object.isSealed,
-  Object.keys,
-  Object.preventExtensions,
-  Object.seal,
-  Object.setPrototypeOf,
-  Object.values
-];
-
-function inObject(value) {
-  for (var i = 0; i < OBJECT_FUNCTIONS.length; i++) {
-    if (OBJECT_FUNCTIONS[i] === value) return true;
-  }
-  return false;
+function isNativeCode(fn) {
+  return fn.toString().slice(-19) === ') { [native code] }'; // eslint-disable-line no-magic-numbers
 }
 
 function globalDeleter(object, propertyName) {
@@ -42,11 +15,9 @@ function globalGetter(object, propertyName) {
   } else {
     value = object[propertyName];
   }
-  if (typeof value === 'function' && inObject(value)) {
+  if (typeof value === 'function' && isNativeCode(value)) {
     return function() {
-      arguments[0] = objectTarget(arguments[0]);
-
-      return value.apply(Object, arguments);
+      return value.apply(objectTarget(this), objectTargets(arguments)); // eslint-disable-line no-invalid-this
     };
   }
   return value;
@@ -74,6 +45,14 @@ function isProxy(object) {
 
 function objectTarget(object) {
   return isProxy(object) ? object.target : object;
+}
+
+function objectTargets(objects) {
+  var targets = [];
+  for (var i = 0; i < objects.length; i++) {
+    targets.push(objectTarget(objects[i]));
+  }
+  return targets;
 }
 
 window.Proxy = window.Proxy || function(target, handlers) {
