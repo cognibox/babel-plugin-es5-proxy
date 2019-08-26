@@ -8,31 +8,83 @@ describe('babel-plugin-es5-proxy @medium', () => {
     VALUE = Math.random();
   });
 
-  // describe('JSON strignify', () => {
-  //   context('when stringifying an object', () => {
-  //     it('should stringify the object', () => {
-  //       const code = `
-  //         let obj = { foo: 'bar' };
-  //         JSON.stringify(obj)
-  //       `;
-  //       const output = buildRun(code);
+  describe('JSON strignify', () => {
+    context('when stringifying an object', () => {
+      it('should stringify the object', () => {
+        const code = `
+          let obj = { foo: 'bar' };
+          JSON.stringify(obj)
+        `;
+        const output = buildRun(code);
 
-  //       expect(output).to.equal('{\"foo\":\"bar\"}');
-  //     });
-  //   });
+        expect(output).to.equal('{"foo":"bar"}');
+      });
+    });
 
-  //   context('when stringifying a proxy', () => {
-  //     it('should stringify the target', () => {
-  //       const code = `
-  //         let obj = new Proxy({foo: 'bar'}, {});
-  //         JSON.stringify(obj)
-  //       `;
-  //       const output = buildRun(code);
+    context('when stringifying a proxy', () => {
+      it('should stringify the target', () => {
+        const code = `
+          let obj = new Proxy({foo: 'bar'}, {});
+          JSON.stringify(obj)
+        `;
+        const output = buildRun(code);
 
-  //       expect(output).to.equal('{\"foo\":\"bar\"}');
-  //     });
-  //   });
-  // });
+        expect(output).to.equal('{"foo":"bar"}');
+      });
+    });
+  });
+
+  describe('when target is an array', () => {
+    context('when using a proxy', () => {
+      context('when calling map on the array', () => {
+        it('should call map on the target', () => {
+          const code = `
+            const proxy = new Proxy([${VALUE}], {});
+            proxy.map((item) => item);
+          `;
+
+          const output = buildRun(code);
+
+          expect(output[0]).to.equal(VALUE);
+        });
+      });
+
+      context('when calling map with Array.prototype.map', () => {
+        it('should call map on the target', () => {
+          const code = `
+            const proxy = new Proxy([${VALUE}], {});
+            Array.prototype.map.call(proxy, (item) => item);
+          `;
+
+          const output = buildRun(code);
+
+          expect(output[0]).to.equal(VALUE);
+        });
+      });
+
+      // context.only('when using a for of', () => {
+      //   const code = `
+      //     const proxy = new Proxy([${VALUE}], {});
+      //     for (let item of proxy) item
+      //   `;
+
+      //   const output = buildRun(code);
+
+      //   expect(output).to.equal(VALUE);
+      // });
+
+      // context('when using a for in', () => {
+      //   const code = `
+      //     const proxy = new Proxy([${VALUE}], {});
+      //     for (let key in proxy) proxy[key]
+      //   `;
+
+      //   const output = buildRun(code);
+
+      //   expect(output).to.equal(VALUE);
+      // });
+    });
+  });
 
   describe('regular assignment', () => {
     context('when assigning a literal to a variable', () => {
@@ -2002,6 +2054,10 @@ function build(code) {
   );
 }
 
-function buildRun(code) {
-  return eval(build(code).code); // eslint-disable-line no-eval
+function buildRun(code, verbose) {
+  const output = build(code).code;
+  if (verbose === true) {
+    console.log(output); // eslint-disable-line no-console
+  }
+  return eval(output); // eslint-disable-line no-eval
 }
