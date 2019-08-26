@@ -1,4 +1,5 @@
 /* eslint-disable prefer-rest-params, no-var, comma-dangle */
+
 var OBJECT_FUNCTIONS = [
   Object.assign,
   Object.create,
@@ -68,14 +69,14 @@ function globalSetter(object, propertyName, value) {
 }
 
 function isProxy(object) {
-  return object && object.constructor && object.constructor.toString().split(' ')[1].match(/__proxy_/);
+  return object instanceof window.Proxy;
 }
 
 function objectTarget(object) {
   return isProxy(object) ? object.target : object;
 }
 
-function Proxy(target, handlers) { // eslint-disable-line no-unused-vars
+window.Proxy = window.Proxy || function(target, handlers) {
   if (target === undefined || handlers === undefined) throw TypeError('Cannot create proxy with a non-object as target or handler');
   this.target = target;
 
@@ -84,20 +85,22 @@ function Proxy(target, handlers) { // eslint-disable-line no-unused-vars
   };
 
   this.has = function(property) {
-    return (handlers.has || globalHas)(target, property);
+    return !!(handlers.has || globalHas)(target, property);
   };
 
   this.set = function(property, value) {
-    return (handlers.set || globalSetter)(target, property, value);
+    (handlers.set || globalSetter)(target, property, value);
+    return value;
   };
 
   this.deleteProperty = function(property) {
-    return (handlers.deleteProperty || globalDeleter)(target, property);
+    (handlers.deleteProperty || globalDeleter)(target, property);
+    return true;
   };
 
   this.instanceOf = function(cls) {
     return this.target instanceof cls;
   };
-}
+};
 
 /* eslint-enable prefer-rest-params, no-var, comma-dangle */

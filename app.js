@@ -3,8 +3,6 @@ const babylon = require('babylon');
 const babel = require('@babel/core');
 const thisModifierFunctions = ['apply', 'bind', 'call'];
 
-let variableIndex = 0;
-
 let evalName,
     globalDeleterName,
     globalGetterName,
@@ -72,10 +70,8 @@ function setVariableNames() {
   proxyName = variableName('proxy');
 }
 
-function variableName(prefix) {
-  const base36 = 36;
-  const randomString = Math.random().toString(base36).replace(/[^a-z]+/g, '');
-  return `__${prefix}_${randomString}_${variableIndex++}`;
+function variableName(name) {
+  return `__$${name}$__`;
 }
 
 module.exports = ({ types } = {}, options = {}) => {
@@ -244,9 +240,12 @@ module.exports = ({ types } = {}, options = {}) => {
 
       path.replaceWith(
         types.newExpression(
-          types.identifier(proxyName),
+          types.memberExpression(
+            types.identifier('window'),
+            types.identifier(proxyName),
+          ),
           path.node.arguments,
-        ),
+        )
       );
     },
     UnaryExpression(path) {

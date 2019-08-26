@@ -6,7 +6,7 @@
   "author": "Cognibox",
   "license": "MIT",
   "scripts": {
-    "test": "mocha",
+    "test": "mocha -r jsdom-global/register",
     "lint": "./node_modules/.bin/eslint . --ext .js --quiet"
   },
   "dependencies": {
@@ -22,6 +22,8 @@
     "@cognibox/eslint-config-cbx": "^1.0.0",
     "chai": "^4.2.0",
     "eslint": "^5.16.0",
+    "jsdom": "15.1.1",
+    "jsdom-global": "3.0.2",
     "mocha": "^6.1.4"
   },
   "files": [
