@@ -88,7 +88,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
       const code = `eval("var foo = ${VALUE};")`;
       const output = build(code).code;
 
-      const regex = /function\s__global_getter/g;
+      const regex = /function\s__\$global_getter\$__/g;
       const matching = output.match(regex);
 
       expect(matching.length).to.equal(1);
@@ -1061,7 +1061,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
         const output = buildRun(code);
 
-        expect(output).to.eq(VALUE);
+        expect(output).to.eq(true);
       });
 
       context('when the deleteProperty handler does nothing', () => {
@@ -1165,18 +1165,18 @@ describe('babel-plugin-es5-proxy @medium', () => {
       });
 
       context('when a handler has been defined', () => {
-        it('should use the handler', () => {
+        it('should use the handler and cast the value as boolean', () => {
           const code = `
             'foo' in new Proxy({}, {
               has() {
-                return ${VALUE};
+                return 3;
               },
             });
           `;
 
           const output = buildRun(code);
 
-          expect(output).to.eq(VALUE);
+          expect(output).to.eq(true);
         });
       });
     });
@@ -1959,10 +1959,15 @@ describe('babel-plugin-es5-proxy @medium', () => {
           expect(output).to.equal(VALUE);
         });
 
-        it('should return the same value as the setter', () => {
+        it('should return the assigned value', () => {
           const code = `
-            const obj = new Proxy({}, { set: function(object, property, value) { object.bar = value; return ${VALUE} } });
-            obj['bing'] = 'PAF';
+            const obj = new Proxy({}, {
+              set: function(object, property, value) {
+                object.bar = value;
+                return 'PAF';
+              }
+            });
+            obj['bing'] = ${VALUE};
           `;
 
           const output = buildRun(code);
