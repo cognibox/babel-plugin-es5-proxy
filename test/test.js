@@ -1658,6 +1658,22 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
                 expect(output).to.equal(VALUE);
               });
+
+              it.only('should pass the arguments', () => {
+                const code = `
+                  function Stuff(meArg) {
+                    if (!(this instanceof Stuff)) throw TypeError();
+                    this.pew = meArg;
+                  }
+                  Stuff.toString = function() { return 'function Stuff() { [native code] }'; };
+                  var wrapper = { meConstructor: Stuff };
+                  new wrapper.meConstructor(${VALUE}).pew;
+                `;
+
+                const output = buildRun(code);
+
+                expect(output).to.equal(VALUE);
+              });
             });
           });
 
