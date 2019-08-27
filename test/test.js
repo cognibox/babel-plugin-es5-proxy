@@ -1659,7 +1659,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
                 expect(output).to.equal(VALUE);
               });
 
-              it.only('should pass the arguments', () => {
+              it('should pass the arguments', () => {
                 const code = `
                   function Stuff(meArg) {
                     if (!(this instanceof Stuff)) throw TypeError();
