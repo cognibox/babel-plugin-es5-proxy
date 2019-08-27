@@ -1674,6 +1674,21 @@ describe('babel-plugin-es5-proxy @medium', () => {
                 buildRun(code);
               }).to.throw('No No');
             });
+
+            context('for missing new', () => {
+              it('should raise an error', () => {
+                expect(() => {
+                  const code = `
+                    function wrongStuff() { if (this === window) throw 'No No'; }
+                    wrongStuff.toString = function() { return 'function wrongStuff() { [native code] }'; };
+                    var wrapper = { wrongStuff: wrongStuff };
+                    wrapper.wrongStuff();
+                  `;
+
+                  buildRun(code);
+                }).to.throw('No No');
+              });
+            });
           });
         });
 
