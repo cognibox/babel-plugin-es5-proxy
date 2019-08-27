@@ -19,8 +19,11 @@ function globalGetter(object, propertyName) {
     return function() {
       try {
         return value.apply(objectTarget(this), objectTargets(arguments)); // eslint-disable-line no-invalid-this
-      } catch (_) {
-        return new (Function.prototype.bind.apply(value, objectTargets(arguments)))();
+      } catch (error) {
+        if (error instanceof TypeError) {
+          return new (Function.prototype.bind.apply(value, objectTargets(arguments)))();
+        }
+        throw error;
       }
     };
   }
