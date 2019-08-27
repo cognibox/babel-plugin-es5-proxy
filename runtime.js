@@ -17,7 +17,11 @@ function globalGetter(object, propertyName) {
   }
   if (typeof value === 'function' && isNativeCode(value)) {
     return function() {
-      return value.apply(objectTarget(this), objectTargets(arguments)); // eslint-disable-line no-invalid-this
+      try {
+        return value.apply(objectTarget(this), objectTargets(arguments)); // eslint-disable-line no-invalid-this
+      } catch (_) {
+        return new (Function.prototype.bind.apply(value, objectTargets(arguments)))();
+      }
     };
   }
   return value;
