@@ -1644,6 +1644,19 @@ describe('babel-plugin-es5-proxy @medium', () => {
         });
 
         context('when function is native', () => {
+          it('should return the same reference', () => {
+            const code = `
+              Blob.toString = function() { return 'function Blob() { [native code] }'; };
+              var wrapper = { meConstructor: Blob };
+              Blob.prototype.pew = ${VALUE};
+              wrapper.meConstructor === Blob;
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.be.true;
+          });
+
           context('when function is constructor', () => {
             context('when calling method on new constructor', () => {
               it('should return the value of the method', () => {
