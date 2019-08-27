@@ -1643,6 +1643,55 @@ describe('babel-plugin-es5-proxy @medium', () => {
           expect(output).to.equal(VALUE);
         });
 
+        context('when function is native', () => {
+          context('when function is constructor', () => {
+            context('when calling method on new constructor', () => {
+              it('should return the value of the method', () => {
+                const code = `
+                  Blob.toString = function() { return 'function Blob() { [native code] }'; };
+                  var wrapper = { meConstructor: Blob };
+                  Blob.prototype.pew = ${VALUE};
+                  new wrapper.meConstructor().pew;
+                `;
+
+                const output = buildRun(code);
+
+                expect(output).to.equal(VALUE);
+              });
+            });
+          });
+
+          context('when raising an error', () => {
+            it('should raise an error', () => {
+              expect(() => {
+                const code = `
+                  function wrongStuff() { throw 'No No'; }
+                  wrongStuff.toString = function() { return 'function wrongStuff() { [native code] }'; };
+                  var wrapper = { wrongStuff: wrongStuff };
+                  wrapper.wrongStuff();
+                `;
+
+                buildRun(code);
+              }).to.throw('No No');
+            });
+
+            context('for missing new', () => {
+              it('should raise an error', () => {
+                expect(() => {
+                  const code = `
+                    function wrongStuff() { if (Object.keys(this).length) throw 'No No'; }
+                    wrongStuff.toString = function() { return 'function wrongStuff() { [native code] }'; };
+                    var wrapper = { wrongStuff: wrongStuff };
+                    wrapper.wrongStuff();
+                  `;
+
+                  buildRun(code);
+                }).to.throw('No No');
+              });
+            });
+          });
+        });
+
         context('when the function is in an array', () => {
           it('should call the function', () => {
             const code = `
