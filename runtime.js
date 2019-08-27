@@ -21,7 +21,7 @@ function globalGetter(object, propertyName) {
         return value.apply(objectTarget(this), objectTargets(arguments)); // eslint-disable-line no-invalid-this
       } catch (error) {
         if (error instanceof TypeError) {
-          return new (Function.prototype.bind.apply(value, objectTargets(arguments)))();
+          return new (Function.prototype.bind.apply(value, [this].concat(objectTargets(arguments))))(); // eslint-disable-line no-invalid-this
         }
         throw error;
       }
