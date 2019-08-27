@@ -1665,14 +1665,14 @@ describe('babel-plugin-es5-proxy @medium', () => {
             it('should raise an error', () => {
               expect(() => {
                 const code = `
-                  function wrongStuff() { Throw 'No No'; }
+                  function wrongStuff() { throw 'No No'; }
                   wrongStuff.toString = function() { return 'function wrongStuff() { [native code] }'; };
                   var wrapper = { wrongStuff: wrongStuff };
                   wrapper.wrongStuff();
                 `;
 
                 buildRun(code);
-              }).to.throw(Error);
+              }).to.throw('No No');
             });
           });
         });
