@@ -1643,7 +1643,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
           expect(output).to.equal(VALUE);
         });
 
-        context('when chaining function call', () => {
+        context.only('when chaining function call', () => {
           it('should not call multiple time the same function on the chain', () => {
             const code = `
               var index = 0;
@@ -1657,6 +1657,40 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
             const numberOfCalledTime = 1;
             expect(output).to.equal(numberOfCalledTime);
+          });
+
+          context('using call', () => {
+            it('should not call multiple time the same function on the chain', () => {
+              const code = `
+                var index = 0;
+                function foo() { index++; return { bar: bar }; }
+                function bar() { return { foo: foo }; }
+                foo().bar.call();
+                index;
+              `;
+
+              const output = buildRun(code, true);
+
+              const numberOfCalledTime = 1;
+              expect(output).to.equal(numberOfCalledTime);
+            });
+          });
+
+          context('using call', () => {
+            it('should not call multiple time the same function on the chain', () => {
+              const code = `
+                var index = 0;
+                function foo() { index++; return { bar: bar }; }
+                function bar() { return { foo: foo }; }
+                foo().bar.apply();
+                index;
+              `;
+
+              const output = buildRun(code, true);
+
+              const numberOfCalledTime = 1;
+              expect(output).to.equal(numberOfCalledTime);
+            });
           });
         });
 
