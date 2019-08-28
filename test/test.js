@@ -1365,6 +1365,25 @@ describe('babel-plugin-es5-proxy @medium', () => {
       expect(output).to.equal(VALUE);
     });
 
+    describe('for statement', () => {
+      it('should work', () => {
+        const code = `
+          var index = 0;
+          function nbr() { return ${VALUE}; }
+          var stuff = { nbr: nbr };
+          var i = 0;
+          for(stuff.nbr(); i < stuff.nbr() * 2; i++) {
+            index++;
+          }
+          index;
+        `;
+
+        const output = buildRun(code);
+
+        expect(output).to.equal(VALUE);
+      });
+    });
+
     context('when chaining function call', () => {
       it('should not call multiple time the same function on the chain', () => {
         const code = `
