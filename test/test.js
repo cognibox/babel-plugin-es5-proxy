@@ -1498,9 +1498,9 @@ describe('babel-plugin-es5-proxy @medium', () => {
               bar(proxy);
             `;
 
-            const output = buildRun(code);
+            const [output] = buildRun(code);
 
-            expect(output).to.deep.equal([VALUE]);
+            expect(output).to.deep.equal(VALUE.toString());
           });
         });
       });

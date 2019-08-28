@@ -154,7 +154,7 @@ module.exports = ({ types } = {}, options = {}) => {
       }
     },
     CallExpression(path) {
-      if (path.node.callee.name === globalGetterName || path.node.callee.name === globalSetterName) return;
+      if (path.node.callee.name === globalGetterName || path.node.callee.name === globalSetterName || path.node.callee.name === 'globalCaller' || path.node.callee.name === evalName) return;
 
       if (path.node.callee.name === 'eval') {
         path.replaceWith(
@@ -239,6 +239,19 @@ module.exports = ({ types } = {}, options = {}) => {
                     types.arrayExpression(path.node.arguments),
                   ]
                 ),
+              ),
+            ]
+          )
+        );
+      } else {
+        path.replaceWith(
+          types.callExpression(
+            types.identifier('globalCaller'),
+            [
+              path.node.callee,
+              types.identifier('undefined'),
+              types.arrayExpression(
+                path.node.arguments,
               ),
             ]
           )
