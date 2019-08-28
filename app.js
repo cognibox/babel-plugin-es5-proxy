@@ -185,7 +185,7 @@ module.exports = ({ types } = {}, options = {}) => {
               ),
               [
                 path.node.callee.object,
-                path.node.arguments[0],
+                path.node.arguments[0] || types.identifier('undefined'),
                 types.arrayExpression(
                   path.node.arguments.slice(1),
                 ),
@@ -202,7 +202,7 @@ module.exports = ({ types } = {}, options = {}) => {
               ),
               [
                 path.node.callee.object,
-                path.node.arguments[0],
+                path.node.arguments[0] || types.identifier('undefined'),
                 path.node.arguments[1] || types.arrayExpression(),
               ],
             ),
@@ -211,21 +211,37 @@ module.exports = ({ types } = {}, options = {}) => {
         }
 
 
+        const tempVariableName = randomVariableName('temp_var');
         path.replaceWith(
-          types.expressionStatement(
-            types.callExpression(
-              types.identifier('globalCaller'),
-              [
-                types.memberExpression(
-                  path.node.callee.object,
-                  computeProperty(path.node.callee.property, path.node.callee),
-                  true,
+          types.blockStatement(
+            [
+              types.variableDeclaration(
+                'var',
+                [
+                  types.variableDeclarator(
+                    types.identifier(tempVariableName),
+                    path.node.callee.object,
+                  )
+                ]
+              ),
+              types.expressionStatement(
+                types.callExpression(
+                  types.identifier('globalCaller'),
+                  [
+                    types.memberExpression(
+                      types.identifier(tempVariableName),
+                      computeProperty(path.node.callee.property, path.node.callee),
+                      true,
+                    ),
+                    types.identifier(
+                      tempVariableName
+                    ),
+                    types.arrayExpression(path.node.arguments),
+                  ]
                 ),
-                path.node.callee.object,
-                types.arrayExpression(path.node.arguments),
-              ]
-            ),
-          ),
+              ),
+            ]
+          )
         );
       }
     },
