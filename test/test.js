@@ -56,7 +56,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
             Array.prototype.map.call(proxy, (item) => item);
           `;
 
-          const output = buildRun(code);
+          const output = buildRun(code, true);
 
           expect(output[0]).to.equal(VALUE);
         });

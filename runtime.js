@@ -1,7 +1,8 @@
 /* eslint-disable prefer-rest-params, no-var, comma-dangle */
+var toStringBackup = Function.prototype.toString;
 
 function isNativeCode(fn) {
-  return fn.toString().slice(-19) === ') { [native code] }'; // eslint-disable-line no-magic-numbers
+  return toStringBackup.call(fn).slice(-19) === ') { [native code] }'; // eslint-disable-line no-magic-numbers
 }
 
 function globalDeleter(object, propertyName) {
@@ -15,19 +16,21 @@ function globalGetter(object, propertyName) {
   } else {
     value = object[propertyName];
   }
-  if (typeof value === 'function' && isNativeCode(value)) {
-    return function() {
-      try {
-        return value.apply(objectTarget(this), objectTargets(arguments)); // eslint-disable-line no-invalid-this
-      } catch (error) {
-        if (error instanceof TypeError) {
-          return new (Function.prototype.bind.apply(value, [this].concat(objectTargets(arguments))))(); // eslint-disable-line no-invalid-this
-        }
-        throw error;
-      }
-    };
-  }
   return value;
+}
+
+function globalCaller(fn, target, args) {
+  if (fn !== Function.prototype.toString && isNativeCode(fn)) {
+    return fn.apply(objectTarget(target), objectTargets(args));
+  }
+  return fn.apply(target, args);
+}
+
+function globalNewer(target, fn, args) {
+  if (isNativeCode(fn)) {
+    return new (Function.prototype.bind.apply(fn, [objectTarget(target)].concat(objectTargets(args))))();
+  }
+  return new (Function.prototype.bind.apply(fn, [target].concat(args)))();
 }
 
 function globalHas(object, propertyName) {

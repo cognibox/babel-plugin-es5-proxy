@@ -74,6 +74,11 @@ function variableName(name) {
   return `__$${name}$__`;
 }
 
+function randomVariableName(name) {
+  let r = Math.random().toString(36).substring(7);
+  return `__$${name}$__$${r}$__`;
+}
+
 module.exports = ({ types } = {}, options = {}) => {
   function computeProperty(property, node) {
     if (property.type === 'Identifier' && !node.computed) {
@@ -172,38 +177,54 @@ module.exports = ({ types } = {}, options = {}) => {
       }
 
       if (path.node.callee.type === 'MemberExpression') {
-        if (thisModifierFunctions.includes(path.node.callee.property.name)) return;
-
-        const tempVariableName = variableName('temp');
-        path.replaceWith(
-          types.blockStatement(
-            [
-              types.variableDeclaration(
-                'var',
-                [
-                  types.variableDeclarator(
-                    types.identifier(tempVariableName),
-                    path.node.callee.object,
-                  ),
-                ],
+        if (path.node.callee.property.name === 'call') {
+          path.replaceWith(
+            types.callExpression(
+              types.identifier(
+                'globalCaller',
               ),
-              types.expressionStatement(
-                types.callExpression(
-                  types.memberExpression(
-                    types.memberExpression(
-                      types.identifier(tempVariableName),
-                      computeProperty(path.node.callee.property, path.node.callee),
-                      true,
-                    ),
-                    types.identifier('call'),
-                  ),
-                  [
-                    types.identifier(tempVariableName),
-                    ...path.node.arguments,
-                  ],
+              [
+                path.node.callee.object,
+                path.node.arguments[0],
+                types.arrayExpression(
+                  path.node.arguments.slice(1),
                 ),
+              ],
+            ),
+          );
+          return;
+        }
+        if (path.node.callee.property.name === 'apply') {
+          path.replaceWith(
+            types.callExpression(
+              types.identifier(
+                'globalCaller',
               ),
-            ],
+              [
+                path.node.callee.object,
+                path.node.arguments[0],
+                path.node.arguments[1] || types.arrayExpression(),
+              ],
+            ),
+          );
+          return;
+        }
+
+
+        path.replaceWith(
+          types.expressionStatement(
+            types.callExpression(
+              types.identifier('globalCaller'),
+              [
+                types.memberExpression(
+                  path.node.callee.object,
+                  computeProperty(path.node.callee.property, path.node.callee),
+                  true,
+                ),
+                path.node.callee.object,
+                types.arrayExpression(path.node.arguments),
+              ]
+            ),
           ),
         );
       }
