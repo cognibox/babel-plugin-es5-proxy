@@ -56,7 +56,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
             Array.prototype.map.call(proxy, (item) => item);
           `;
 
-          const output = buildRun(code, true);
+          const output = buildRun(code);
 
           expect(output[0]).to.equal(VALUE);
         });
@@ -1641,6 +1641,23 @@ describe('babel-plugin-es5-proxy @medium', () => {
           const output = buildRun(code);
 
           expect(output).to.equal(VALUE);
+        });
+
+        context('when chaining function call', () => {
+          it('should not call multiple time the same function on the chain', () => {
+            const code = `
+              var index = 0;
+              function foo() { index++; return { bar: bar }; }
+              function bar() { return { foo: foo }; }
+              foo().bar();
+              index;
+            `;
+
+            const output = buildRun(code, true);
+
+            const numberOfCalledTime = 1;
+            expect(output).to.equal(numberOfCalledTime);
+          });
         });
 
         context('when function is native', () => {
