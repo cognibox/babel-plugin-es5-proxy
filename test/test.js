@@ -1342,6 +1342,184 @@ describe('babel-plugin-es5-proxy @medium', () => {
     });
   });
 
+  describe('globalCaller', () => {
+    it('should return the value', () => {
+      const code = `
+        const obj = { bar: function() { return ${VALUE}; } };
+        obj.bar();
+      `;
+
+      const output = buildRun(code);
+
+      expect(output).to.equal(VALUE);
+    });
+
+    it('should bind this to the right object', () => {
+      const code = `
+        const obj = { bar: function() { return this.baz; }, baz: ${VALUE} };
+        obj.bar();
+      `;
+
+      const output = buildRun(code);
+
+      expect(output).to.equal(VALUE);
+    });
+
+    context('when chaining function call', () => {
+      it('should not call multiple time the same function on the chain', () => {
+        const code = `
+          var index = 0;
+          function foo() { index++; return { bar: bar }; }
+          function bar() { return { foo: foo }; }
+          foo().bar();
+          index;
+        `;
+
+        const output = buildRun(code);
+
+        const numberOfCalledTime = 1;
+        expect(output).to.equal(numberOfCalledTime);
+      });
+
+      context('using call', () => {
+        it('should not call multiple time the same function on the chain', () => {
+          const code = `
+            var index = 0;
+            function foo() { index++; return { bar: bar }; }
+            function bar() { return { foo: foo }; }
+            foo().bar.call();
+            index;
+          `;
+
+          const output = buildRun(code);
+
+          const numberOfCalledTime = 1;
+          expect(output).to.equal(numberOfCalledTime);
+        });
+      });
+
+      context('using call', () => {
+        it('should not call multiple time the same function on the chain', () => {
+          const code = `
+            var index = 0;
+            function foo() { index++; return { bar: bar }; }
+            function bar() { return { foo: foo }; }
+            foo().bar.apply();
+            index;
+          `;
+
+          const output = buildRun(code);
+
+          const numberOfCalledTime = 1;
+          expect(output).to.equal(numberOfCalledTime);
+        });
+      });
+    });
+
+    context('when function is native', () => {
+      context('when function is constructor', () => {
+        context('when calling method on new constructor', () => {
+          it('should return the value of the method', () => {
+            const code = `
+              Blob.toString = function() { return 'function Blob() { [native code] }'; };
+              var wrapper = { meConstructor: Blob };
+              Blob.prototype.pew = ${VALUE};
+              new wrapper.meConstructor().pew;
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.equal(VALUE);
+          });
+
+          it('should pass the arguments', () => {
+            const code = `
+              function Stuff(meArg) {
+                if (!(this instanceof Stuff)) throw TypeError();
+                this.pew = meArg;
+              }
+              Stuff.toString = function() { return 'function Stuff() { [native code] }'; };
+              var wrapper = { meConstructor: Stuff };
+              new wrapper.meConstructor(${VALUE}).pew;
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.equal(VALUE);
+          });
+        });
+      });
+
+      context('when raising an error', () => {
+        it('should raise an error', () => {
+          expect(() => {
+            const code = `
+              function wrongStuff() { throw 'No No'; }
+              wrongStuff.toString = function() { return 'function wrongStuff() { [native code] }'; };
+              var wrapper = { wrongStuff: wrongStuff };
+              wrapper.wrongStuff();
+            `;
+
+            buildRun(code);
+          }).to.throw('No No');
+        });
+
+        context('for missing new', () => {
+          it('should raise an error', () => {
+            expect(() => {
+              const code = `
+                function wrongStuff() { if (Object.keys(this).length) throw 'No No'; }
+                wrongStuff.toString = function() { return 'function wrongStuff() { [native code] }'; };
+                var wrapper = { wrongStuff: wrongStuff };
+                wrapper.wrongStuff();
+              `;
+
+              buildRun(code);
+            }).to.throw('No No');
+          });
+        });
+      });
+
+      context('when this is a proxy', () => {
+
+      });
+
+      context('when argument is a proxy', () => {
+        it('should pass the proxy.target as argument', () => {
+
+        });
+
+        context('when function is called directly', () => {
+          it('should pass the proxy.target as argument', () => {
+            const code = `
+              var obj = { [${VALUE}]: 'foo' };
+              var bar = Object.keys;
+              var proxy = new Proxy(obj, {});
+              bar(proxy);
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.deep.equal([VALUE]);
+          });
+        });
+      });
+    });
+
+    context('when the function is in an array', () => {
+      it('should call the function', () => {
+        const code = `
+            const obj = { bar: [function() { return ${VALUE}; }] };
+            obj.bar[0]();
+          `;
+
+        const output = buildRun(code);
+
+        expect(output).to.equal(VALUE);
+      });
+    });
+  });
+
   describe('globalGetter', () => {
     context('when accessing on regular object', () => {
       context('when property is not a function', () => {
@@ -1616,159 +1794,6 @@ describe('babel-plugin-es5-proxy @medium', () => {
                 });
               });
             });
-          });
-        });
-      });
-
-      context('when property is a function', () => {
-        it('should return the value', () => {
-          const code = `
-            const obj = { bar: function() { return ${VALUE}; } };
-            obj.bar();
-          `;
-
-          const output = buildRun(code);
-
-          expect(output).to.equal(VALUE);
-        });
-
-        it('should bind this to the right object', () => {
-          const code = `
-            const obj = { bar: function() { return this.baz; }, baz: ${VALUE} };
-            obj.bar();
-          `;
-
-          const output = buildRun(code);
-
-          expect(output).to.equal(VALUE);
-        });
-
-        context.only('when chaining function call', () => {
-          it('should not call multiple time the same function on the chain', () => {
-            const code = `
-              var index = 0;
-              function foo() { index++; return { bar: bar }; }
-              function bar() { return { foo: foo }; }
-              foo().bar();
-              index;
-            `;
-
-            const output = buildRun(code, true);
-
-            const numberOfCalledTime = 1;
-            expect(output).to.equal(numberOfCalledTime);
-          });
-
-          context('using call', () => {
-            it('should not call multiple time the same function on the chain', () => {
-              const code = `
-                var index = 0;
-                function foo() { index++; return { bar: bar }; }
-                function bar() { return { foo: foo }; }
-                foo().bar.call();
-                index;
-              `;
-
-              const output = buildRun(code, true);
-
-              const numberOfCalledTime = 1;
-              expect(output).to.equal(numberOfCalledTime);
-            });
-          });
-
-          context('using call', () => {
-            it('should not call multiple time the same function on the chain', () => {
-              const code = `
-                var index = 0;
-                function foo() { index++; return { bar: bar }; }
-                function bar() { return { foo: foo }; }
-                foo().bar.apply();
-                index;
-              `;
-
-              const output = buildRun(code, true);
-
-              const numberOfCalledTime = 1;
-              expect(output).to.equal(numberOfCalledTime);
-            });
-          });
-        });
-
-        context('when function is native', () => {
-          context('when function is constructor', () => {
-            context('when calling method on new constructor', () => {
-              it('should return the value of the method', () => {
-                const code = `
-                  Blob.toString = function() { return 'function Blob() { [native code] }'; };
-                  var wrapper = { meConstructor: Blob };
-                  Blob.prototype.pew = ${VALUE};
-                  new wrapper.meConstructor().pew;
-                `;
-
-                const output = buildRun(code);
-
-                expect(output).to.equal(VALUE);
-              });
-
-              it('should pass the arguments', () => {
-                const code = `
-                  function Stuff(meArg) {
-                    if (!(this instanceof Stuff)) throw TypeError();
-                    this.pew = meArg;
-                  }
-                  Stuff.toString = function() { return 'function Stuff() { [native code] }'; };
-                  var wrapper = { meConstructor: Stuff };
-                  new wrapper.meConstructor(${VALUE}).pew;
-                `;
-
-                const output = buildRun(code);
-
-                expect(output).to.equal(VALUE);
-              });
-            });
-          });
-
-          context('when raising an error', () => {
-            it('should raise an error', () => {
-              expect(() => {
-                const code = `
-                  function wrongStuff() { throw 'No No'; }
-                  wrongStuff.toString = function() { return 'function wrongStuff() { [native code] }'; };
-                  var wrapper = { wrongStuff: wrongStuff };
-                  wrapper.wrongStuff();
-                `;
-
-                buildRun(code);
-              }).to.throw('No No');
-            });
-
-            context('for missing new', () => {
-              it('should raise an error', () => {
-                expect(() => {
-                  const code = `
-                    function wrongStuff() { if (Object.keys(this).length) throw 'No No'; }
-                    wrongStuff.toString = function() { return 'function wrongStuff() { [native code] }'; };
-                    var wrapper = { wrongStuff: wrongStuff };
-                    wrapper.wrongStuff();
-                  `;
-
-                  buildRun(code);
-                }).to.throw('No No');
-              });
-            });
-          });
-        });
-
-        context('when the function is in an array', () => {
-          it('should call the function', () => {
-            const code = `
-                const obj = { bar: [function() { return ${VALUE}; }] };
-                obj.bar[0]();
-              `;
-
-            const output = buildRun(code);
-
-            expect(output).to.equal(VALUE);
           });
         });
       });
