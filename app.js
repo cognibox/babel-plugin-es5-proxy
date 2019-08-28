@@ -101,6 +101,106 @@ module.exports = ({ types } = {}, options = {}) => {
     },
   };
 
+  function expressionToStatement(expression) {
+    if (expression) {
+      return types.isExpression(expression) ? types.expressionStatement(expression) : expression;
+    } else {
+      return types.emptyStatement();
+    }
+  }
+
+  function labelTransform(label) {
+    return `${label}_THISLABELHASBEENCHANGED`;
+  }
+
+  const forToWhileNodes = {
+    ForStatement(path) {
+      if (!types.isLabeledStatement(path.parent)) {
+        path.replaceWith(
+          types.blockStatement(
+            [
+              expressionToStatement(path.node.init),
+              types.whileStatement(
+                path.node.test || types.identifier('true'),
+                types.blockStatement(
+                  [
+                    expressionToStatement(path.node.body),
+                    expressionToStatement(path.node.update),
+                  ]
+                )
+              ),
+            ],
+          ),
+        );
+      }
+    },
+    LabeledStatement(path) {
+      if (types.isForStatement(path.node.body)) {
+        path.replaceWith(
+          types.blockStatement(
+            [
+              expressionToStatement(path.node.body.init),
+              types.functionDeclaration(
+                types.identifier(`my_super_cool_function_${labelTransform(path.node.label.name)}`),
+                [],
+                types.blockStatement(
+                  [expressionToStatement(path.node.body.update)],
+                ),
+              ),
+              types.labeledStatement(
+                types.identifier(
+                  labelTransform(path.node.label.name),
+                ),
+                types.whileStatement(
+                  path.node.body.test || types.identifier('true'),
+                  types.blockStatement(
+                    [
+                      expressionToStatement(path.node.body.body),
+                      expressionToStatement(
+                        types.callExpression(
+                          types.identifier(`my_super_cool_function_${labelTransform(path.node.label.name)}`),
+                          []
+                        ),
+                      ),
+                    ]
+                  )
+                ),
+              ),
+            ],
+          ),
+        );
+      }
+    },
+    ContinueStatement(path) {
+      if (path.node.label && !path.node.label.name.match(/_THISLABELHASBEENCHANGED/)) {
+        path.replaceWith(
+          types.blockStatement(
+            [
+              expressionToStatement(
+                types.callExpression(
+                  types.identifier(`my_super_cool_function_${labelTransform(path.node.label.name)}`),
+                  []
+                ),
+              ),
+              types.ContinueStatement(
+                types.identifier(labelTransform(path.node.label.name)),
+              )
+            ]
+          ),
+        );
+      }
+    },
+    BreakStatement(path) {
+      if (path.node.label && !path.node.label.name.match(/_THISLABELHASBEENCHANGED/)) {
+        path.replaceWith(
+          types.BreakStatement(
+            types.identifier(labelTransform(path.node.label.name)),
+          )
+        );
+      }
+    },
+  };
+
   const nodes = {
     AssignmentExpression(path) {
       if (path.node.left.type !== 'MemberExpression') return;
@@ -210,39 +310,43 @@ module.exports = ({ types } = {}, options = {}) => {
           return;
         }
 
-
+        try {
         const tempVariableName = randomVariableName('temp_var');
         path.replaceWith(
-          types.blockStatement(
-            [
-              types.variableDeclaration(
-                'var',
-                [
-                  types.variableDeclarator(
-                    types.identifier(tempVariableName),
-                    path.node.callee.object,
-                  )
-                ]
-              ),
-              types.expressionStatement(
-                types.callExpression(
-                  types.identifier('globalCaller'),
+            types.blockStatement(
+              [
+                types.variableDeclaration(
+                  'var',
                   [
-                    types.memberExpression(
+                    types.variableDeclarator(
                       types.identifier(tempVariableName),
-                      computeProperty(path.node.callee.property, path.node.callee),
-                      true,
-                    ),
-                    types.identifier(
-                      tempVariableName
-                    ),
-                    types.arrayExpression(path.node.arguments),
+                      path.node.callee.object,
+                    )
                   ]
                 ),
-              ),
-            ]
+                types.expressionStatement(
+                  types.callExpression(
+                    types.identifier('globalCaller'),
+                    [
+                      types.memberExpression(
+                        types.identifier(tempVariableName),
+                        computeProperty(path.node.callee.property, path.node.callee),
+                        true,
+                      ),
+                      types.identifier(
+                        tempVariableName
+                      ),
+                      types.arrayExpression(path.node.arguments),
+                    ]
+                  ),
+                ),
+              ]
           )
         );
+        } catch (e) {
+          console.log(path.parent)
+          throw e;
+        }
       } else {
         path.replaceWith(
           types.callExpression(
@@ -387,6 +491,7 @@ module.exports = ({ types } = {}, options = {}) => {
       Program(path) {
         setVariableNames();
 
+        path.traverse(forToWhileNodes);
         path.traverse(nodes);
         path.traverse(restoreEvalNodes);
 
