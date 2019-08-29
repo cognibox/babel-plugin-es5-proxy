@@ -1,8 +1,9 @@
 /* eslint-disable prefer-rest-params, no-var, comma-dangle */
-var toStringBackup = Function.prototype.toString;
+"use strict";
+window.toStringBackup = window.toStringBackup || Function.prototype.toString;
 
 function isNativeCode(fn) {
-  return toStringBackup.call(fn).slice(-19) === ') { [native code] }'; // eslint-disable-line no-magic-numbers
+  return window.toStringBackup.call(fn).slice(-19) === ') { [native code] }'; // eslint-disable-line no-magic-numbers
 }
 
 function globalDeleter(object, propertyName) {
@@ -20,6 +21,16 @@ function globalGetter(object, propertyName) {
 }
 
 function globalCaller(fn, target, args) {
+  if (fn === Function.prototype.call) {
+    fn = target;
+    target = args[0];
+    args = args.slice(1);
+  }
+  if (fn === Function.prototype.apply) {
+    fn = target;
+    target = args[0];
+    args = args[1] || [];
+  }
   if (fn !== Function.prototype.toString && isNativeCode(fn)) {
     return fn.apply(objectTarget(target), objectTargets(args));
   }
@@ -54,7 +65,7 @@ function isProxy(object) {
 }
 
 function objectTarget(object) {
-  return isProxy(object) ? object.target : object;
+  return isProxy(object) ? object.target() : object;
 }
 
 function objectTargets(objects) {
@@ -67,7 +78,10 @@ function objectTargets(objects) {
 
 window.Proxy = window.Proxy || function(target, handlers) {
   if (target === undefined || handlers === undefined) throw TypeError('Cannot create proxy with a non-object as target or handler');
-  this.target = target;
+
+  this.target = function() {
+    return target;
+  };
 
   this.get = function(property) {
     return (handlers.get || globalGetter)(target, property);
@@ -88,7 +102,7 @@ window.Proxy = window.Proxy || function(target, handlers) {
   };
 
   this.instanceOf = function(cls) {
-    return this.target instanceof cls;
+    return this.target() instanceof cls;
   };
 };
 

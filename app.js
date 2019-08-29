@@ -169,6 +169,37 @@ module.exports = ({ types } = {}, options = {}) => {
             ],
           ),
         );
+      } else if (types.isWhileStatement(path.node.body)) {
+        if (!path.node.label.name.match(/_THISLABELHASBEENCHANGED/)) {
+          path.replaceWith(
+            types.blockStatement(
+              [
+                types.functionDeclaration(
+                  types.identifier(`my_super_cool_function_${labelTransform(path.node.label.name)}`),
+                  [],
+                  types.blockStatement([]),
+                ),
+                types.labeledStatement(
+                  types.identifier(
+                    labelTransform(path.node.label.name),
+                  ),
+                  path.node.body,
+                ),
+              ],
+            ),
+          );
+        }
+      } else {
+        if (!path.node.label.name.match(/_THISLABELHASBEENCHANGED/)) {
+          path.replaceWith(
+            types.labeledStatement(
+              types.identifier(
+                labelTransform(path.node.label.name),
+              ),
+              path.node.body,
+            ),
+          );
+        }
       }
     },
     ContinueStatement(path) {
@@ -277,40 +308,6 @@ module.exports = ({ types } = {}, options = {}) => {
       }
 
       if (path.node.callee.type === 'MemberExpression') {
-        if (path.node.callee.property.name === 'call') {
-          path.replaceWith(
-            types.callExpression(
-              types.identifier(
-                'globalCaller',
-              ),
-              [
-                path.node.callee.object,
-                path.node.arguments[0] || types.identifier('undefined'),
-                types.arrayExpression(
-                  path.node.arguments.slice(1),
-                ),
-              ],
-            ),
-          );
-          return;
-        }
-        if (path.node.callee.property.name === 'apply') {
-          path.replaceWith(
-            types.callExpression(
-              types.identifier(
-                'globalCaller',
-              ),
-              [
-                path.node.callee.object,
-                path.node.arguments[0] || types.identifier('undefined'),
-                path.node.arguments[1] || types.arrayExpression(),
-              ],
-            ),
-          );
-          return;
-        }
-
-        try {
         const tempVariableName = randomVariableName('temp_var');
         path.replaceWith(
             types.blockStatement(
@@ -343,10 +340,6 @@ module.exports = ({ types } = {}, options = {}) => {
               ]
           )
         );
-        } catch (e) {
-          console.log(path.parent)
-          throw e;
-        }
       } else {
         path.replaceWith(
           types.callExpression(
