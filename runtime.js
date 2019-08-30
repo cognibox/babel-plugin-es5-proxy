@@ -3,7 +3,7 @@
 window.toStringBackup = window.toStringBackup || Function.prototype.toString;
 
 function isNativeCode(fn) {
-  return window.toStringBackup.call(fn).slice(-19) === ') { [native code] }'; // eslint-disable-line no-magic-numbers
+  return !!window.toStringBackup.call(fn).match(/\[native code\]/);
 }
 
 function globalDeleter(object, propertyName) {
@@ -18,6 +18,11 @@ function globalGetter(object, propertyName) {
     value = object[propertyName];
   }
   return value;
+}
+
+function globalMemberCaller(target, property, args) {
+  var fn = globalGetter(target, property);
+  return globalCaller(fn, target, args);
 }
 
 function globalCaller(fn, target, args) {

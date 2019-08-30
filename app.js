@@ -26,7 +26,6 @@ function addRuntimeToFile(path) {
     .replace(/inObject/g, inObjectName)
     .replace(/isProxy/g, isProxyName)
     .replace(/objectTarget/g, objectTargetName)
-    .replace(/OBJECT_FUNCTIONS/g, objectFunctionsName)
     .replace(/Proxy/g, proxyName);
 
   path.unshiftContainer(
@@ -113,125 +112,6 @@ module.exports = ({ types } = {}, options = {}) => {
     return `${label}_THISLABELHASBEENCHANGED`;
   }
 
-  const forToWhileNodes = {
-    ForStatement(path) {
-      if (!types.isLabeledStatement(path.parent)) {
-        path.replaceWith(
-          types.blockStatement(
-            [
-              expressionToStatement(path.node.init),
-              types.whileStatement(
-                path.node.test || types.identifier('true'),
-                types.blockStatement(
-                  [
-                    expressionToStatement(path.node.body),
-                    expressionToStatement(path.node.update),
-                  ]
-                )
-              ),
-            ],
-          ),
-        );
-      }
-    },
-    LabeledStatement(path) {
-      if (types.isForStatement(path.node.body)) {
-        path.replaceWith(
-          types.blockStatement(
-            [
-              expressionToStatement(path.node.body.init),
-              types.functionDeclaration(
-                types.identifier(`my_super_cool_function_${labelTransform(path.node.label.name)}`),
-                [],
-                types.blockStatement(
-                  [expressionToStatement(path.node.body.update)],
-                ),
-              ),
-              types.labeledStatement(
-                types.identifier(
-                  labelTransform(path.node.label.name),
-                ),
-                types.whileStatement(
-                  path.node.body.test || types.identifier('true'),
-                  types.blockStatement(
-                    [
-                      expressionToStatement(path.node.body.body),
-                      expressionToStatement(
-                        types.callExpression(
-                          types.identifier(`my_super_cool_function_${labelTransform(path.node.label.name)}`),
-                          []
-                        ),
-                      ),
-                    ]
-                  )
-                ),
-              ),
-            ],
-          ),
-        );
-      } else if (types.isWhileStatement(path.node.body)) {
-        if (!path.node.label.name.match(/_THISLABELHASBEENCHANGED/)) {
-          path.replaceWith(
-            types.blockStatement(
-              [
-                types.functionDeclaration(
-                  types.identifier(`my_super_cool_function_${labelTransform(path.node.label.name)}`),
-                  [],
-                  types.blockStatement([]),
-                ),
-                types.labeledStatement(
-                  types.identifier(
-                    labelTransform(path.node.label.name),
-                  ),
-                  path.node.body,
-                ),
-              ],
-            ),
-          );
-        }
-      } else {
-        if (!path.node.label.name.match(/_THISLABELHASBEENCHANGED/)) {
-          path.replaceWith(
-            types.labeledStatement(
-              types.identifier(
-                labelTransform(path.node.label.name),
-              ),
-              path.node.body,
-            ),
-          );
-        }
-      }
-    },
-    ContinueStatement(path) {
-      if (path.node.label && !path.node.label.name.match(/_THISLABELHASBEENCHANGED/)) {
-        path.replaceWith(
-          types.blockStatement(
-            [
-              expressionToStatement(
-                types.callExpression(
-                  types.identifier(`my_super_cool_function_${labelTransform(path.node.label.name)}`),
-                  []
-                ),
-              ),
-              types.ContinueStatement(
-                types.identifier(labelTransform(path.node.label.name)),
-              )
-            ]
-          ),
-        );
-      }
-    },
-    BreakStatement(path) {
-      if (path.node.label && !path.node.label.name.match(/_THISLABELHASBEENCHANGED/)) {
-        path.replaceWith(
-          types.BreakStatement(
-            types.identifier(labelTransform(path.node.label.name)),
-          )
-        );
-      }
-    },
-  };
-
   const nodes = {
     AssignmentExpression(path) {
       if (path.node.left.type !== 'MemberExpression') return;
@@ -285,7 +165,7 @@ module.exports = ({ types } = {}, options = {}) => {
       }
     },
     CallExpression(path) {
-      if (path.node.callee.name === globalGetterName || path.node.callee.name === globalSetterName || path.node.callee.name === 'globalCaller' || path.node.callee.name === evalName) return;
+      if (path.node.callee.name === globalGetterName || path.node.callee.name === globalSetterName || path.node.callee.name === 'globalCaller' || path.node.callee.name === evalName || path.node.callee.name === globalDeleterName || path.node.callee.name === globalHasName || path.node.callee.name === 'globalMemberCaller') return;
 
       if (path.node.callee.name === 'eval') {
         path.replaceWith(
@@ -310,35 +190,16 @@ module.exports = ({ types } = {}, options = {}) => {
       if (path.node.callee.type === 'MemberExpression') {
         const tempVariableName = randomVariableName('temp_var');
         path.replaceWith(
-            types.blockStatement(
-              [
-                types.variableDeclaration(
-                  'var',
-                  [
-                    types.variableDeclarator(
-                      types.identifier(tempVariableName),
-                      path.node.callee.object,
-                    )
-                  ]
-                ),
-                types.expressionStatement(
-                  types.callExpression(
-                    types.identifier('globalCaller'),
-                    [
-                      types.memberExpression(
-                        types.identifier(tempVariableName),
-                        computeProperty(path.node.callee.property, path.node.callee),
-                        true,
-                      ),
-                      types.identifier(
-                        tempVariableName
-                      ),
-                      types.arrayExpression(path.node.arguments),
-                    ]
-                  ),
-                ),
-              ]
-          )
+          types.callExpression(
+            types.identifier('globalMemberCaller'),
+            [
+              path.node.callee.object,
+              computeProperty(path.node.callee.property, path.node.callee),
+              types.arrayExpression(
+                path.node.arguments,
+              ),
+            ],
+          ),
         );
       } else {
         path.replaceWith(
@@ -484,7 +345,6 @@ module.exports = ({ types } = {}, options = {}) => {
       Program(path) {
         setVariableNames();
 
-        path.traverse(forToWhileNodes);
         path.traverse(nodes);
         path.traverse(restoreEvalNodes);
 

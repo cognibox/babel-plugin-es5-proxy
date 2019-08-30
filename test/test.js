@@ -1114,7 +1114,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
           obj.bar;
         `;
 
-        const output = buildRun(code);
+        const output = buildRun(code, true);
 
         expect(output).to.eq(VALUE);
       });
@@ -2239,5 +2239,7 @@ function buildRun(code, verbose) {
   if (verbose === true) {
     console.log(output); // eslint-disable-line no-console
   }
-  return eval(output); // eslint-disable-line no-eval
+  const result = eval(output);
+  expect(result).to.deep.equal(eval(code));
+  return result; // eslint-disable-line no-eval
 }
