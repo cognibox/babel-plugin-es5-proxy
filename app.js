@@ -11,7 +11,6 @@ let evalName,
     globalSetterName,
     inObjectName,
     isProxyName,
-    objectFunctionsName,
     objectTargetName,
     proxyName;
 
@@ -26,7 +25,6 @@ function addRuntimeToFile(path) {
     .replace(/inObject/g, inObjectName)
     .replace(/isProxy/g, isProxyName)
     .replace(/objectTarget/g, objectTargetName)
-    .replace(/OBJECT_FUNCTIONS/g, objectFunctionsName)
     .replace(/Proxy/g, proxyName);
 
   path.unshiftContainer(
@@ -66,7 +64,6 @@ function setVariableNames() {
   inObjectName = variableName('in_object');
   isProxyName = variableName('is_proxy');
   objectTargetName = variableName('object_target');
-  objectFunctionsName = variableName('object_functions');
   proxyName = variableName('proxy');
 }
 
@@ -149,7 +146,7 @@ module.exports = ({ types } = {}, options = {}) => {
       }
     },
     CallExpression(path) {
-      if (path.node.callee.name === globalGetterName || path.node.callee.name === globalSetterName) return;
+      if (path.node.callee.name === globalGetterName || path.node.callee.name === globalSetterName || path.node.callee.name === 'globalCaller' || path.node.callee.name === evalName || path.node.callee.name === globalDeleterName || path.node.callee.name === globalHasName || path.node.callee.name === 'globalMemberCaller') return;
 
       if (path.node.callee.name === 'eval') {
         path.replaceWith(
@@ -172,39 +169,30 @@ module.exports = ({ types } = {}, options = {}) => {
       }
 
       if (path.node.callee.type === 'MemberExpression') {
-        if (thisModifierFunctions.includes(path.node.callee.property.name)) return;
-
-        const tempVariableName = variableName('temp');
         path.replaceWith(
-          types.blockStatement(
+          types.callExpression(
+            types.identifier('globalMemberCaller'),
             [
-              types.variableDeclaration(
-                'var',
-                [
-                  types.variableDeclarator(
-                    types.identifier(tempVariableName),
-                    path.node.callee.object,
-                  ),
-                ],
-              ),
-              types.expressionStatement(
-                types.callExpression(
-                  types.memberExpression(
-                    types.memberExpression(
-                      types.identifier(tempVariableName),
-                      computeProperty(path.node.callee.property, path.node.callee),
-                      true,
-                    ),
-                    types.identifier('call'),
-                  ),
-                  [
-                    types.identifier(tempVariableName),
-                    ...path.node.arguments,
-                  ],
-                ),
+              path.node.callee.object,
+              computeProperty(path.node.callee.property, path.node.callee),
+              types.arrayExpression(
+                path.node.arguments,
               ),
             ],
           ),
+        );
+      } else {
+        path.replaceWith(
+          types.callExpression(
+            types.identifier('globalCaller'),
+            [
+              path.node.callee,
+              types.identifier('undefined'),
+              types.arrayExpression(
+                path.node.arguments,
+              ),
+            ]
+          )
         );
       }
     },

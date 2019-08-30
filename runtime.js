@@ -1,7 +1,8 @@
 /* eslint-disable prefer-rest-params, no-var, comma-dangle */
+window.toStringBackup = window.toStringBackup || Function.prototype.toString;
 
 function isNativeCode(fn) {
-  return fn.toString().slice(-19) === ') { [native code] }'; // eslint-disable-line no-magic-numbers
+  return !!window.toStringBackup.call(fn).match(/\[native code\]/);
 }
 
 function globalDeleter(object, propertyName) {
@@ -15,19 +16,28 @@ function globalGetter(object, propertyName) {
   } else {
     value = object[propertyName];
   }
-  if (typeof value === 'function' && isNativeCode(value)) {
-    return function() {
-      try {
-        return value.apply(objectTarget(this), objectTargets(arguments)); // eslint-disable-line no-invalid-this
-      } catch (error) {
-        if (error instanceof TypeError) {
-          return new (Function.prototype.bind.apply(value, [this].concat(objectTargets(arguments))))(); // eslint-disable-line no-invalid-this
-        }
-        throw error;
-      }
-    };
-  }
   return value;
+}
+
+function globalMemberCaller(target, property, args) { // eslint-disable-line no-unused-vars
+  var fn = globalGetter(target, property);
+  return globalCaller(fn, target, args);
+}
+
+function globalCaller(fn, target, args) {
+  if (fn === Function.prototype.call) {
+    fn = target;
+    target = args[0];
+    args = args.slice(1);
+  } else if (fn === Function.prototype.apply) {
+    fn = target;
+    target = args[0];
+    args = args[1] || [];
+  }
+  if (fn !== Function.prototype.toString && isNativeCode(fn)) {
+    return fn.apply(objectTarget(target), objectTargets(args));
+  }
+  return fn.apply(target, args);
 }
 
 function globalHas(object, propertyName) {
@@ -51,7 +61,7 @@ function isProxy(object) {
 }
 
 function objectTarget(object) {
-  return isProxy(object) ? object.target : object;
+  return isProxy(object) ? object.target() : object;
 }
 
 function objectTargets(objects) {
@@ -64,7 +74,10 @@ function objectTargets(objects) {
 
 window.Proxy = window.Proxy || function(target, handlers) {
   if (target === undefined || handlers === undefined) throw TypeError('Cannot create proxy with a non-object as target or handler');
-  this.target = target;
+
+  this.target = function() {
+    return target;
+  };
 
   this.get = function(property) {
     return (handlers.get || globalGetter)(target, property);
@@ -85,7 +98,7 @@ window.Proxy = window.Proxy || function(target, handlers) {
   };
 
   this.instanceOf = function(cls) {
-    return this.target instanceof cls;
+    return this.target() instanceof cls;
   };
 };
 
