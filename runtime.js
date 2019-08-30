@@ -19,7 +19,7 @@ function globalGetter(object, propertyName) {
   return value;
 }
 
-function globalMemberCaller(target, property, args) {
+function globalMemberCaller(target, property, args) { // eslint-disable-line no-unused-vars
   var fn = globalGetter(target, property);
   return globalCaller(fn, target, args);
 }
@@ -39,13 +39,6 @@ function globalCaller(fn, target, args) {
     return fn.apply(objectTarget(target), objectTargets(args));
   }
   return fn.apply(target, args);
-}
-
-function globalNewer(target, fn, args) {
-  if (isNativeCode(fn)) {
-    return new (Function.prototype.bind.apply(fn, [objectTarget(target)].concat(objectTargets(args))))();
-  }
-  return new (Function.prototype.bind.apply(fn, [target].concat(args)))();
 }
 
 function globalHas(object, propertyName) {

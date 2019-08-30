@@ -11,7 +11,6 @@ let evalName,
     globalSetterName,
     inObjectName,
     isProxyName,
-    objectFunctionsName,
     objectTargetName,
     proxyName;
 
@@ -65,17 +64,11 @@ function setVariableNames() {
   inObjectName = variableName('in_object');
   isProxyName = variableName('is_proxy');
   objectTargetName = variableName('object_target');
-  objectFunctionsName = variableName('object_functions');
   proxyName = variableName('proxy');
 }
 
 function variableName(name) {
   return `__$${name}$__`;
-}
-
-function randomVariableName(name) {
-  let r = Math.random().toString(36).substring(7);
-  return `__$${name}$__$${r}$__`;
 }
 
 module.exports = ({ types } = {}, options = {}) => {
@@ -99,18 +92,6 @@ module.exports = ({ types } = {}, options = {}) => {
       }
     },
   };
-
-  function expressionToStatement(expression) {
-    if (expression) {
-      return types.isExpression(expression) ? types.expressionStatement(expression) : expression;
-    } else {
-      return types.emptyStatement();
-    }
-  }
-
-  function labelTransform(label) {
-    return `${label}_THISLABELHASBEENCHANGED`;
-  }
 
   const nodes = {
     AssignmentExpression(path) {
@@ -188,7 +169,6 @@ module.exports = ({ types } = {}, options = {}) => {
       }
 
       if (path.node.callee.type === 'MemberExpression') {
-        const tempVariableName = randomVariableName('temp_var');
         path.replaceWith(
           types.callExpression(
             types.identifier('globalMemberCaller'),

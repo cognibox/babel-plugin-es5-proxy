@@ -1519,15 +1519,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
         });
       });
 
-      context('when this is a proxy', () => {
-
-      });
-
       context('when argument is a proxy', () => {
-        it('should pass the proxy.target as argument', () => {
-
-        });
-
         context('when function is called directly', () => {
           it('should pass the proxy.target as argument', () => {
             const code = `
@@ -2239,7 +2231,7 @@ function buildRun(code, verbose) {
   if (verbose === true) {
     console.log(output); // eslint-disable-line no-console
   }
-  const result = eval(output);
-  expect(result).to.deep.equal(eval(code));
-  return result; // eslint-disable-line no-eval
+  const result = eval(output); // eslint-disable-line no-eval
+  expect(result).to.deep.equal(eval(code)); // eslint-disable-line no-eval
+  return result;
 }
