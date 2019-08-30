@@ -29,8 +29,7 @@ function globalCaller(fn, target, args) {
     fn = target;
     target = args[0];
     args = args.slice(1);
-  }
-  if (fn === Function.prototype.apply) {
+  } else if (fn === Function.prototype.apply) {
     fn = target;
     target = args[0];
     args = args[1] || [];

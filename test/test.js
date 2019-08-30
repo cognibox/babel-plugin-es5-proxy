@@ -8,22 +8,26 @@ describe('babel-plugin-es5-proxy @medium', () => {
     VALUE = Math.random();
   });
 
-  it('should run do the shume', () => {
-    const code = `
-      var index = 0;
-      function nbr() { return ${VALUE}; }
-      var stuff = { nbr: nbr };
-      mew:
-      for(var i = 0; i < stuff.nbr() * 2; i++) {
-        index++;
-        continue mew;
-      }
-      index - 1;
-    `;
+  describe('labeled Statement', () => {
+    context('when using a labeled continue', () => {
+      it('continue the right loop', () => {
+        const code = `
+          var index = 0;
+          function nbr() { return ${VALUE}; }
+          var stuff = { nbr: nbr };
+          mew:
+          for(var i = 0; i < stuff.nbr() * 2; i++) {
+            index++;
+            continue mew;
+          }
+          index - 1;
+        `;
 
-    const output = buildRun(code);
+        const output = buildRun(code);
 
-    expect(output).to.equal(Math.round(VALUE));
+        expect(output).to.equal(Math.round(VALUE));
+      });
+    });
   });
 
   describe('JSON strignify', () => {
@@ -1114,7 +1118,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
           obj.bar;
         `;
 
-        const output = buildRun(code, true);
+        const output = buildRun(code);
 
         expect(output).to.eq(VALUE);
       });
@@ -1404,20 +1408,17 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
     context('when chaining function call', () => {
       it('should not call multiple time the same function on the chain', () => {
-        // const code = `
-        //   var index = 0;
-        //   function foo() { index++; return { bar: bar }; }
-        //   function bar() { return { foo: foo }; }
-        //   foo().bar();
-        //   tm = gc(foo, undefined, []);
-        //   gc(gg(tm, 'bar'), tm, []);
-        //   index;
-        // `;
+        const code = `
+          var index = 0;
+          function foo() { index++; return { bar: bar }; }
+          function bar() { return { foo: foo }; }
+          foo().bar();
+          index;
+        `;
 
-        // const output = buildRun(code, true);
+        const output = buildRun(code, true);
 
-        // const numberOfCalledTime = 1;
-        // expect(output).to.equal(numberOfCalledTime);
+        expect(output).to.equal(1);
       });
 
       context('using call', () => {
