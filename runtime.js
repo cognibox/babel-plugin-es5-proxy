@@ -1,5 +1,4 @@
 /* eslint-disable prefer-rest-params, no-var, comma-dangle */
-"use strict";
 window.toStringBackup = window.toStringBackup || Function.prototype.toString;
 
 function isNativeCode(fn) {
