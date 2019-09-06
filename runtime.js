@@ -141,12 +141,18 @@ window.toStringBackup = window.toStringBackup || Function.prototype.toString;
 
       if (isProxy(this)) {
         var length = this.get('length');
+        var newArray = this.formatTarget();
+
+        backup.apply(newArray, arguments);
+
+        target.length = 0;
         for (var i = 0; i < length; i++) {
-          target[i] = this.get(i);
+          target[i] = newArray[i];
         }
+      } else {
+        backup.apply(target, arguments);
       }
 
-      backup.apply(target, arguments);
       return this;
     };
   }
