@@ -1541,7 +1541,63 @@ describe('babel-plugin-es5-proxy @medium', () => {
       });
 
       context('Array.prototype.splice', () => {
+        context('with proxy', () => {
+          it('should work', () => {
+            const code = `
+              var months = ['Jan', 'March', 'April', 'June'];
+              var proxy = new Proxy(months, {
+                get: function(t, p) {
+                  var value = t[p];
+                  if (p !== 'length' && p !== 'constructor') {
+                    value = value + ' getted'
+                  }
+                  return value;
+                },
 
+                set: function(t, p, v) {
+                  t[p] = v;
+
+                  if (p !== 'length') {
+                    t[p] = v + ' setted';
+                  } else {
+                    t[p] = v;
+                  }
+
+                  return true;
+                }
+              });
+              Array.prototype.splice.call(proxy, 1, 0, 'Feb');
+              Array.prototype.splice.call(proxy, 4, 1, 'May');
+
+              months;
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.deep.equal(['Jan', 'Feb setted', 'March getted setted', 'April getted setted', 'May setted']);
+          });
+
+          context('when start is negative', () => {
+            it('should work', () => {
+
+            });
+          });
+        });
+
+        context('without proxy', () => {
+          it('should work', () => {
+            const code = `
+              var months = ['Jan', 'March', 'April', 'June'];
+              months.splice(1, 0, 'Feb');
+              months.splice(4, 1, 'May');
+              months;
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.deep.equal(['Jan', 'Feb', 'March', 'April', 'May']);
+          });
+        });
       });
 
       context('Array.prototype.toLocaleString', () => {

@@ -157,6 +157,50 @@ window.toStringBackup = window.toStringBackup || Function.prototype.toString;
     };
   }
 
+  function buildSplice() {
+    var backup = Array.prototype.splice;
+
+    Array.prototype.splice = function(start, deleteCount) { //eslint-disable-line
+      if (isProxy(this)) {
+        var items = [];
+        var argLength = arguments.length;
+        for (var i = 2; i < argLength; i++) {
+          items[i - 2] = arguments[i];
+        }
+
+        var nbr = start + deleteCount;
+
+        var deletedElements = [];
+        for (i = start; i < nbr; i++) {
+          deletedElements[i - start] = this.get(i);
+        }
+
+        var toKeep = [];
+        var length = this.get('length');
+        for (i = nbr; i < length; i++) {
+          toKeep[i - nbr] = this.get(i);
+        }
+
+        var itemToAddLength = items.length;
+        var toKeepLength = toKeep.length;
+
+        this.set('length', start + itemToAddLength + toKeepLength);
+
+        for (i = 0; i < itemToAddLength; i++) {
+          this.set(start + i, items[i]);
+        }
+
+        for (i = 0; i < toKeepLength; i++) {
+          this.set(start + i + 1, toKeep[i]);
+        }
+
+        return deletedElements;
+      }
+
+      return backup.apply(this, arguments);
+    };
+  }
+
   function buildFunctions(fnNames, fn) {
     var len = fnNames.length;
     for (var elementIndex = 0; elementIndex < len; elementIndex++) {
@@ -208,6 +252,7 @@ window.toStringBackup = window.toStringBackup || Function.prototype.toString;
   buildReverse();
   buildShift();
   buildSort();
+  buildSplice();
 
   buildFunctions([
     'Object.prototype.hasOwnProperty',
@@ -344,7 +389,7 @@ if (!window.Proxy) {
 
     this.has = function(property) {
       if (handlers.has) {
-        handlers.has.call(this, target, property);
+        return !!handlers.has.call(this, target, property);
       }
 
       return !!globalHas(target, property);
@@ -353,9 +398,9 @@ if (!window.Proxy) {
     this.set = function(property, value) {
       if (handlers.set) {
         handlers.set.call(this, target, property, value);
+      } else {
+        globalSetter(target, property, value);
       }
-
-      globalSetter(target, property, value);
 
       return value;
     };
@@ -363,9 +408,9 @@ if (!window.Proxy) {
     this.deleteProperty = function(property) {
       if (handlers.deleteProperty) {
         handlers.deleteProperty.call(this, target, property);
+      } else {
+        globalDeleter(target, property);
       }
-
-      globalDeleter(target, property);
 
       return true;
     };
