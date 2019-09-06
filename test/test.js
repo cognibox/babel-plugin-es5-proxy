@@ -1254,9 +1254,9 @@ describe('babel-plugin-es5-proxy @medium', () => {
           context('when param is proxy', () => {
             it('should work', () => {
               const code = `
-                var obj = [-5];
+                var obj = [];
 
-                var other = []
+                var other = [-5]
                 var proxy = new Proxy(other, {
                   get: function(t, p) {
                     if (p == '0') return ${VALUE};
@@ -1265,12 +1265,12 @@ describe('babel-plugin-es5-proxy @medium', () => {
                   }
                 });
 
-                Array.prototype.concat.call(obj, [${VALUE}]);
+                Array.prototype.concat.call(obj, proxy);
               `;
 
               const output = buildRun(code);
 
-              expect(output).to.deep.equal([VALUE, VALUE]);
+              expect(output).to.deep.equal([VALUE]);
             });
           });
         });
@@ -1286,6 +1286,256 @@ describe('babel-plugin-es5-proxy @medium', () => {
             const output = buildRun(code);
 
             expect(output).to.deep.equal([VALUE]);
+          });
+        });
+      });
+
+      context('Array.prototype.join', () => {
+        context('with proxy', () => {
+          it('should work', () => {
+            const OTHER = randomNumber();
+            const MULTIPLIER = 3;
+            const code = `
+              var obj = [${VALUE}, ${OTHER}];
+              var proxy = new Proxy(obj, {
+                get(t, p) {
+                  var value = t[p];
+                  if (!isNaN(parseInt(p))) {
+                    value = value * ${MULTIPLIER};
+                  }
+                  return value;
+                }
+              });
+
+              Array.prototype.join.call(proxy, ', ');
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.equal(`${VALUE * MULTIPLIER}, ${OTHER * MULTIPLIER}`);
+          });
+        });
+
+        context('without proxy', () => {
+          it('should work', () => {
+            const OTHER = randomNumber();
+            const code = `
+              var obj = [${VALUE}, ${OTHER}];
+              Array.prototype.join.call(obj, ', ');
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.equal(`${VALUE}, ${OTHER}`);
+          });
+        });
+      });
+
+      context('Array.prototype.pop', () => {
+        context('with proxy', () => {
+          it('should work', () => {
+            const OTHER = randomNumber();
+            const MULTIPLIER = 3;
+            const code = `
+              var obj = [${VALUE}, ${OTHER}];
+              var proxy = new Proxy(obj, {
+                get(t, p) {
+                  var value = t[p];
+                  if (!isNaN(parseInt(p))) {
+                    value = value * ${MULTIPLIER};
+                  }
+                  return value;
+                }
+              });
+              Array.prototype.pop.call(proxy) === ${OTHER} * ${MULTIPLIER} && obj.length === 1
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.be.true;
+          });
+        });
+
+        context('without proxy', () => {
+          it('should work', () => {
+            const OTHER = randomNumber();
+            const code = `
+              var obj = [${VALUE}, ${OTHER}];
+              Array.prototype.pop.call(obj) === ${OTHER} && obj.length === 1
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.be.true;
+          });
+        });
+      });
+
+      context('Array.prototype.reverse', () => {
+        context('with proxy', () => {
+          it('should work', () => {
+            const OTHER = randomNumber();
+            const MULTIPLIER = 3;
+            const code = `
+              var obj = [${VALUE}, ${OTHER}];
+              var proxy = new Proxy(obj, {
+                get(t, p) {
+                  var value = t[p];
+                  if (!isNaN(parseInt(p.toString()))) {
+                    value = value * ${MULTIPLIER};
+                  }
+                  return value;
+                }
+              });
+              var callValue = Array.prototype.reverse.call(proxy);
+              callValue === proxy && obj.length === 2 && obj[0] === ${OTHER} * ${MULTIPLIER}
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.be.true;
+          });
+        });
+
+        context('without proxy', () => {
+          it('should work', () => {
+            const OTHER = randomNumber();
+            const code = `
+              var obj = [${VALUE}, ${OTHER}];
+              obj.reverse();
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.deep.equal([OTHER, VALUE]);
+          });
+        });
+      });
+
+      context('Array.prototype.shift', () => {
+        context('with proxy', () => {
+          it('should work', () => {
+            const OTHER = randomNumber();
+            const MULTIPLIER = 3;
+            const code = `
+              var obj = [${VALUE}, ${OTHER}];
+              var proxy = new Proxy(obj, {
+                get(t, p) {
+                  var value = t[p];
+                  if (!isNaN(parseInt(p))) {
+                    value = value * ${MULTIPLIER};
+                  }
+                  return value;
+                }
+              });
+              Array.prototype.shift.call(proxy) === ${VALUE} * ${MULTIPLIER} && obj.length === 1
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.be.true;
+          });
+        });
+
+        context('without proxy', () => {
+          it('should work', () => {
+            const OTHER = randomNumber();
+            const code = `
+              var obj = [${VALUE}, ${OTHER}];
+              Array.prototype.shift.call(obj) === ${VALUE} && obj.length === 1
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.be.true;
+          });
+        });
+      });
+
+      context('Array.prototype.slice', () => {
+        context('with proxy', () => {
+          it('should work', () => {
+            const FIRST = randomNumber();
+            const SECOND = randomNumber();
+            const THIRD = randomNumber();
+            const FOURTH = randomNumber();
+            const MULTIPLIER = 3;
+            const code = `
+              var obj = [${FIRST}, ${SECOND}, ${THIRD}, ${FOURTH}];
+              var proxy = new Proxy(obj, {
+                get(t, p) {
+                  var value = t[p];
+                  if (!isNaN(parseInt(p))) {
+                    value = value * ${MULTIPLIER};
+                  }
+                  return value;
+                }
+              });
+              var value = Array.prototype.slice.call(proxy, 1, 3);
+              value.length === 2 && value[0] === ${SECOND * MULTIPLIER} && value[1] === ${THIRD * MULTIPLIER};
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.be.true;
+          });
+        });
+
+        context('without proxy', () => {
+          it('should work', () => {
+            const FIRST = randomNumber();
+            const SECOND = randomNumber();
+            const THIRD = randomNumber();
+            const FOURTH = randomNumber();
+            const code = `
+              var obj = [${FIRST}, ${SECOND}, ${THIRD}, ${FOURTH}];
+              var value = Array.prototype.slice.call(obj, 1, 3);
+              value.length === 2 && value[0] === ${SECOND} && value[1] === ${THIRD};
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.be.true;
+          });
+        });
+      });
+
+      context.only('Array.prototype.sort', () => {
+        context('with proxy', () => {
+          it('should work', () => {
+            const MULTIPLIER = 3;
+            const code = `
+              var obj = [3,2,1,4,5];
+              var proxy = new Proxy(obj, {
+                get(t, p) {
+                  var value = t[p];
+                  if (p === '1') {
+                    value = value * ${MULTIPLIER};
+                  }
+                  return value;
+                }
+              });
+              var value = Array.prototype.sort.call(proxy);
+              value === proxy && obj;
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.deep.equal([1, 3, 18, 4, 5]); // eslint-disable-line no-magic-numbers
+          });
+        });
+
+        context('without proxy', () => {
+          it('should work', () => {
+            const code = `
+              var obj = [3,2,1,4,5];
+              var value = Array.prototype.sort.call(obj);
+              value === obj && obj;
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.deep.equal([1, 2, 3, 4, 5]); // eslint-disable-line no-magic-numbers
           });
         });
       });

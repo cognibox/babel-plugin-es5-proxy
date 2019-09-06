@@ -71,8 +71,83 @@ window.toStringBackup = window.toStringBackup || Function.prototype.toString;
 
     Array.prototype.concat = function() { //eslint-disable-line
       var self = isProxy(this) ? this.formatTarget() : this;
+      var argLen = arguments.length;
+      var args = [];
+      for (var argIndex = 0; argIndex < argLen; argIndex++) {
+        var arg = arguments[argIndex];
+        args[argIndex] = isProxy(arg) ? arg.formatTarget() : arg;
+      }
 
-      return backup.apply(self, arguments);
+      return backup.apply(self, args);
+    };
+  }
+
+  function buildPop() {
+    var backup = Array.prototype.pop;
+
+    Array.prototype.pop = function() { //eslint-disable-line
+      if (isProxy(this)) {
+        var length = this.get('length');
+        var value = this.get(length - 1);
+
+        backup.apply(this.target(), arguments);
+
+        return value;
+      }
+
+      return backup.apply(this, arguments);
+    };
+  }
+
+  function buildShift() {
+    var backup = Array.prototype.shift;
+
+    Array.prototype.shift = function() { //eslint-disable-line
+      if (isProxy(this)) {
+        var value = this.get(0);
+
+        backup.apply(this.target(), arguments);
+
+        return value;
+      }
+
+      return backup.apply(this, arguments);
+    };
+  }
+
+  function buildReverse() {
+    var backup = Array.prototype.reverse;
+
+    Array.prototype.reverse = function() { //eslint-disable-line
+      var target = objectTarget(this);
+
+      if (isProxy(this)) {
+        var length = this.get('length');
+        for (var i = 0; i < length; i++) {
+          target[i] = this.get(i);
+        }
+      }
+
+      backup.apply(target, arguments);
+      return this;
+    };
+  }
+
+  function buildSort() {
+    var backup = Array.prototype.sort;
+
+    Array.prototype.sort = function() { //eslint-disable-line
+      var target = objectTarget(this);
+
+      if (isProxy(this)) {
+        var length = this.get('length');
+        for (var i = 0; i < length; i++) {
+          target[i] = this.get(i);
+        }
+      }
+
+      backup.apply(target, arguments);
+      return this;
     };
   }
 
@@ -82,6 +157,17 @@ window.toStringBackup = window.toStringBackup || Function.prototype.toString;
       var element = fnNames[elementIndex];
       fn(element);
     }
+  }
+
+  function buildWithThisAsFormattedTarget(fnName) {
+    var backup = eval(fnName);
+
+    var fn = function() { //eslint-disable-line
+      var self = isProxy(this) ? this.formatTarget() : this;
+      return backup.apply(self, arguments);
+    };
+
+    eval(fnName + ' = fn;');
   }
 
   function buildWithThisAsTarget(fnName) {
@@ -112,6 +198,10 @@ window.toStringBackup = window.toStringBackup || Function.prototype.toString;
   buildObjectCreate();
   buildSetPrototypeOf();
   buildConcat();
+  buildPop();
+  buildReverse();
+  buildShift();
+  buildSort();
 
   buildFunctions([
     'Object.prototype.hasOwnProperty',
@@ -140,6 +230,11 @@ window.toStringBackup = window.toStringBackup || Function.prototype.toString;
     'Object.prototype.isPrototypeOf',
     'Array.isArray'
   ], buildWithFirstParamAsTarget);
+
+  buildFunctions([
+    'Array.prototype.join',
+    'Array.prototype.slice'
+  ], buildWithThisAsFormattedTarget);
 })();
 
 window.__me__stuff__executed = true;
