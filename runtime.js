@@ -162,6 +162,15 @@ window.toStringBackup = window.toStringBackup || Function.prototype.toString;
 
     Array.prototype.splice = function(start, deleteCount) { //eslint-disable-line
       if (isProxy(this)) {
+        var len =  this.get('length');
+        var relativeStart = parseInt(start, 10);
+
+        if (relativeStart < 0) {
+          start = Math.max(len + relativeStart, 0);
+        } else {
+          start = Math.min(relativeStart, len);
+        }
+
         var items = [];
         var argLength = arguments.length;
         for (var i = 2; i < argLength; i++) {
@@ -176,8 +185,7 @@ window.toStringBackup = window.toStringBackup || Function.prototype.toString;
         }
 
         var toKeep = [];
-        var length = this.get('length');
-        for (i = nbr; i < length; i++) {
+        for (i = nbr; i < len; i++) {
           toKeep[i - nbr] = this.get(i);
         }
 
