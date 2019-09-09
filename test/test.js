@@ -1581,15 +1581,147 @@ describe('babel-plugin-es5-proxy @medium', () => {
       });
 
       context('Array.prototype.reduce', () => {
+        context('with proxy', () => {
+          it('should work', () => {
+            const code = `
+              var array = [
+                new Proxy({ value: 1 }, { get(target, property) { if (property === 'value') return target[property] * 2; return target[property]; } }),
+                new Proxy({ value: 1 }, { get(target, property) { if (property === 'value') return target[property] * 2; return target[property]; } }),
+                new Proxy({ value: 1 }, { get(target, property) { if (property === 'value') return target[property] * 2; return target[property]; } }),
+                new Proxy({ value: 1 }, { get(target, property) { if (property === 'value') return target[property] * 2; return target[property]; } }),
+                new Proxy({ value: 1 }, { get(target, property) { if (property === 'value') return target[property] * 2; return target[property]; } }),
+              ];
+              var proxy = new Proxy(array, { get(target, property) {
+                if (property === 'length') return target[property];
+                target[property].value += 1;
+                return target[property];
+              }})
+              Array.prototype.reduce.call(proxy, (acc, val) => acc + val.value, 1)
+            `;
 
+            const output = buildRun(code);
+
+            expect(output).to.eq(31); // eslint-disable-line no-magic-numbers
+          });
+        });
+
+        context('without proxy', () => {
+          it('should work', () => {
+            const code = `
+              var array = [1, 1, 1, 1, 1];
+              array.reduce((acc, val) => acc + val, 1)
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.eq(6); // eslint-disable-line no-magic-numbers
+          });
+        });
       });
 
       context('Array.prototype.reduceRight', () => {
+        context('with proxy', () => {
+          it('should work', () => {
+            const code = `
+              var array = [
+                new Proxy({ value: 1 }, { get(target, property) { if (property === 'value') return target[property] * 2; return target[property]; } }),
+                new Proxy({ value: 1 }, { get(target, property) { if (property === 'value') return target[property] * 2; return target[property]; } }),
+                new Proxy({ value: 1 }, { get(target, property) { if (property === 'value') return target[property] * 2; return target[property]; } }),
+                new Proxy({ value: 1 }, { get(target, property) { if (property === 'value') return target[property] * 2; return target[property]; } }),
+                new Proxy({ value: 1 }, { get(target, property) { if (property === 'value') return target[property] * 2; return target[property]; } }),
+              ];
+              var proxy = new Proxy(array, { get(target, property) {
+                if (property === 'length') return target[property];
+                target[property].value += 1;
+                return target[property];
+              }})
+              Array.prototype.reduceRight.call(proxy, (acc, val) => acc + val.value, 1)
+            `;
 
+            const output = buildRun(code);
+
+            expect(output).to.eq(31); // eslint-disable-line no-magic-numbers
+          });
+        });
+
+        context('without proxy', () => {
+          it('should work', () => {
+            const code = `
+              var array = [1, 1, 1, 1, 1];
+              array.reduceRight((acc, val) => acc + val, 1)
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.eq(6); // eslint-disable-line no-magic-numbers
+          });
+        });
       });
 
       context('Array.prototype.some', () => {
+        context('with proxy', () => {
+          context('when the array contains a truthy value', () => {
+            it('should return true', () => {
+              const code = `
+                var arr = [false, false, 3, false];
+                var proxy = new Proxy(arr, { get(target, property) {
+                  if (property === 'length') return target[property];
+                  return target[property] + 1;
+                } });
+                Array.prototype.some.call(proxy, (elem) => elem === 4);
+              `;
 
+              const output = buildRun(code);
+
+              expect(output).to.be.true;
+            });
+          });
+
+          context('when the array does not contain a truthy value', () => {
+            it('should return false', () => {
+              const code = `
+                var arr = [false, false, 3, false];
+                var proxy = new Proxy(arr, { get(target, property) {
+                  if (property === 'length') return target[property];
+                  return target[property] + 1;
+                } });
+                Array.prototype.some.call(proxy, (elem) => elem === 3);
+              `;
+
+              const output = buildRun(code);
+
+              expect(output).to.be.false;
+            });
+          });
+        });
+
+        context('without proxy', () => {
+          context('when the array contains a truthy value', () => {
+            it('should return true', () => {
+              const code = `
+                var arr = [false, false, 3, false];
+                Array.prototype.some.call(arr, (elem) => elem === 3);
+              `;
+
+              const output = buildRun(code);
+
+              expect(output).to.be.true;
+            });
+          });
+
+          context('when the array does not contain a truthy value', () => {
+            it('should return false', () => {
+              const code = `
+                var arr = [false, false, 3, false];
+                Array.prototype.some.call(arr, (elem) => elem === 2);
+              `;
+
+              const output = buildRun(code);
+
+              expect(output).to.be.false;
+            });
+          });
+        });
       });
     });
   });

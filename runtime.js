@@ -239,7 +239,10 @@ window.toStringBackup = window.toStringBackup || Function.prototype.toString;
 
   buildFunctions([
     'Array.prototype.join',
-    'Array.prototype.slice'
+    'Array.prototype.slice',
+    'Array.prototype.some',
+    'Array.prototype.reduce',
+    'Array.prototype.reduceRight'
   ], buildWithThisAsFormattedTarget);
 })();
 
