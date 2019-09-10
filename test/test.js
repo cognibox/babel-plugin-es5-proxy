@@ -1632,14 +1632,78 @@ describe('babel-plugin-es5-proxy @medium', () => {
       });
 
       context('Array.prototype.toLocaleString', () => {
-        it('should be written', () => {
-          expect(true).to.be.false;
+        context('with proxy', () => {
+          it('should return target.toLocaleString', () => {
+            const OTHER = randomNumber();
+            const MULTIPLIER = 3;
+            const code = `
+              var obj = [${VALUE}, ${OTHER}];
+              var proxy = new Proxy(obj, {
+                get: function(t, p) {
+                  if (p == '0' || p == '1') return t[p] * ${MULTIPLIER};
+
+                  return t[p];
+                }
+              });
+              Array.prototype.toLocaleString.call(proxy);
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.equal(`${VALUE * MULTIPLIER},${OTHER * MULTIPLIER}`);
+          });
+        });
+
+        context('without proxy', () => {
+          it('should work', () => {
+            const OTHER = randomNumber();
+            const code = `
+              var obj = [${VALUE}, ${OTHER}];
+              Array.prototype.toLocaleString.call(obj);
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.equal(`${VALUE},${OTHER}`);
+          });
         });
       });
 
       context('Array.prototype.toString', () => {
-        it('should be written', () => {
-          expect(true).to.be.false;
+        context('with proxy', () => {
+          it('should return target.toString', () => {
+            const OTHER = randomNumber();
+            const MULTIPLIER = 3;
+            const code = `
+              var obj = [${VALUE}, ${OTHER}];
+              var proxy = new Proxy(obj, {
+                get: function(t, p) {
+                  if (p == '0' || p == '1') return t[p] * ${MULTIPLIER};
+
+                  return t[p];
+                }
+              });
+              Array.prototype.toString.call(proxy);
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.equal(`${VALUE * MULTIPLIER},${OTHER * MULTIPLIER}`);
+          });
+        });
+
+        context('without proxy', () => {
+          it('should work', () => {
+            const OTHER = randomNumber();
+            const code = `
+              var obj = [${VALUE}, ${OTHER}];
+              Array.prototype.toString.call(obj);
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.equal(`${VALUE},${OTHER}`);
+          });
         });
       });
 

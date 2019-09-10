@@ -294,6 +294,8 @@ window.toStringBackup = window.toStringBackup || Function.prototype.toString;
   buildFunctions([
     'Array.prototype.join',
     'Array.prototype.slice',
+    'Array.prototype.toLocaleString',
+    'Array.prototype.toString',
     'Array.prototype.some',
     'Array.prototype.reduce',
     'Array.prototype.reduceRight',
