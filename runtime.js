@@ -1,35 +1,6 @@
 /* eslint-disable prefer-rest-params, no-var, comma-dangle, prefer-template, no-eval, prefer-spread */
 window.toStringBackup = window.toStringBackup || Function.prototype.toString;
 
-// (function() { //eslint-disable-line
-//   var backup = Object.assign;
-//   Object.assign = function() {
-//     var argLen = arguments.length;
-//     var args = [arguments[0]];
-//     for (var i = 1; i < argLen; i++) {
-//       args[i] = objectTarget(arguments[i]);
-//     }
-
-//     if (isProxy(args[0])) {
-//       var proxy = args[0];
-//       for (var argIndex = 1; argIndex < argLen; argIndex++) {
-//         var source = args[argIndex];
-//         var sourceKeys = Object.keys(source);
-//         var sourceKeyLength = sourceKeys.length;
-//         for (var sourceKeyIndex = 0; sourceKeyIndex < sourceKeyLength; sourceKeyIndex++) {
-//           var sourceKey = sourceKeys[sourceKeyIndex];
-//           var sourceValue = source[sourceKey];
-//           proxy.set(sourceKey, sourceValue);
-//         }
-//       }
-
-//       return proxy;
-//     }
-
-//     return backup.apply(undefined, args);
-//   };
-// })();
-
 (function() { //eslint-disable-line
   if (window.nativePatchCalled) return;
 

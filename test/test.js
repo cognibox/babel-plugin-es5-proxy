@@ -14,39 +14,6 @@ describe('babel-plugin-es5-proxy @medium', () => {
   });
 
   describe('native mocked functions', () => {
-    // context('Object.assign', () => {
-    //   context('when first argument is proxy', () => {
-    //     it('should set each values', () => {
-    //       const aValue = VALUE;
-    //       const bValue = randomNumber();
-    //       const cValue = randomNumber();
-    //       const multiplier = 2;
-    //       const code = `
-    //         var object = { a: ${aValue} };
-    //         var proxy = new Proxy(object, {
-    //           set: function(target, property, value) {
-    //             target[property] = value * ${multiplier};
-    //             return true;
-    //           }
-    //         });
-    //         Object.assign(proxy, { b: ${bValue}, c: ${cValue} });
-
-    //         [proxy.b, proxy.c, object.b, object.c]
-    //       `;
-
-    //       const output = buildRun(code);
-
-    //       const expectedB = bValue * multiplier;
-    //       const expectedC = cValue * multiplier;
-    //       expect(output).to.deep.equal([expectedB, expectedC, expectedB, expectedC]);
-    //     });
-    //   });
-
-    //   context('when second argument is a proxy', () => {
-    //     it('should use target', () => {});
-    //   });
-    // });
-
     context('Object', () => {
       context('Object.create', () => {
         context('with proxy', () => {
