@@ -439,6 +439,10 @@ if (!window.Proxy) {
     };
   };
 
+  window.Proxy.prototype.toJSON = function() {
+    return this.formatTarget();
+  };
+
   window.Proxy.prototype.formatTarget = function() {
     return Array.isArray(this.target()) ? this.formatTargetArray() : this.formatTargetObject();
   };

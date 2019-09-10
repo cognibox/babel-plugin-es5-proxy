@@ -13,7 +13,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
     VALUE = randomNumber();
   });
 
-  describe.only('native mocked functions', () => {
+  describe('native mocked functions', () => {
     // context('Object.assign', () => {
     //   context('when first argument is proxy', () => {
     //     it('should set each values', () => {
@@ -2106,59 +2106,118 @@ describe('babel-plugin-es5-proxy @medium', () => {
         });
       });
     });
-  });
 
-  describe('mew mew stuff faster mew', () => {
-    it('should pew fast', () => {
-      const code = `
-        function mul3(value) {
-          return value * 3;
-        }
+    context('JSON', () => {
+      context('JSON.stringify', () => {
+        context('with proxy', () => {
+          it('should work', () => {
+            const OTHER = randomNumber();
+            const code = `
+              var b = {
+                c: 0
+              }
+              var otherProxy = new Proxy(b, {
+                get: function(target, property) {
+                  if (property == 'c') return ${OTHER};
+                  return target[property];
+                }
+              });
 
-        function mul6(value) {
-          return mul3(value) * 2;
-        }
+              var obj = {
+                a: 0,
+                b: otherProxy
+              }
 
-        var aStart = new Date();
+              var proxy = new Proxy(obj, {
+                get: function(target, property) {
+                  if (property == 'a') return ${VALUE};
+                  return target[property];
+                }
+              });
 
-        var obj = {
-          mul3: mul3,
-          mul6: mul6
-        };
+              JSON.stringify(proxy);
+            `;
 
-        var data = [];
-        for(var i =0; i<=10000; i++) {
-          data.push(obj.mul6(i));
-        }
+            const output = buildRun(code);
 
-        var aEnd = new Date();
+            expect(output).to.equal(`{"a":${VALUE},"b":{"c":${OTHER}}}`);
+          });
+        });
 
-        console.log(aEnd - aStart);
-      `;
+        context('without proxy', () => {
+          it('should work', () => {
+            const OTHER = randomNumber();
+            const code = `
+              var obj = {
+                a: ${VALUE},
+                b: {
+                  c: ${OTHER}
+                }
+              }
 
-      buildRun(code);
+              JSON.stringify(obj);
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.equal(`{"a":${VALUE},"b":{"c":${OTHER}}}`);
+          });
+        });
+      });
     });
-
-    // it('no no', () => {
-    //   const code = `
-    //     var obj = { id: ${VALUE} };
-    //     var proxy = new Proxy(obj, {
-    //       get(target, property) {
-    //         return ${VALUE} + 1;
-    //       }
-    //     });
-
-    //     var items = [];
-    //     items.push(proxy);
-
-    //     items[0].id
-    //   `;
-
-    //   const output = buildRun(code, true);
-
-    //   expect(output).to.equal(VALUE);
-    // });
   });
+
+  // describe('mew mew stuff faster mew', () => {
+  //   it('should pew fast', () => {
+  //     const code = `
+  //       function mul3(value) {
+  //         return value * 3;
+  //       }
+
+  //       function mul6(value) {
+  //         return mul3(value) * 2;
+  //       }
+
+  //       var aStart = new Date();
+
+  //       var obj = {
+  //         mul3: mul3,
+  //         mul6: mul6
+  //       };
+
+  //       var data = [];
+  //       for(var i =0; i<=10000; i++) {
+  //         data.push(obj.mul6(i));
+  //       }
+
+  //       var aEnd = new Date();
+
+  //       console.log(aEnd - aStart);
+  //     `;
+
+  //     buildRun(code);
+  //   });
+
+  //   // it('no no', () => {
+  //   //   const code = `
+  //   //     var obj = { id: ${VALUE} };
+  //   //     var proxy = new Proxy(obj, {
+  //   //       get(target, property) {
+  //   //         return ${VALUE} + 1;
+  //   //       }
+  //   //     });
+
+  //   //     var items = [];
+  //   //     items.push(proxy);
+
+  //   //     items[0].id
+  //   //   `;
+
+  //   //   const output = buildRun(code, true);
+
+  //   //   expect(output).to.equal(VALUE);
+  //   // });
+  // });
 
   describe('labeled Statement', () => {
     context('when using a labeled continue', () => {
