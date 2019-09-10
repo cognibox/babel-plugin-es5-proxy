@@ -88,14 +88,26 @@ window.toStringBackup = window.toStringBackup || Function.prototype.toString;
     Array.prototype.reverse = function() { //eslint-disable-line
       var target = objectTarget(this);
 
-      if (isProxy(this)) {
-        var length = this.get('length');
-        for (var i = 0; i < length; i++) {
-          target[i] = this.get(i);
+      var thisIsProxy = isProxy(this);
+
+      var index, length, middleIndex;
+      if (thisIsProxy) {
+        length = this.get('length');
+        middleIndex = (length - 1) / 2; // eslint-disable-line no-magic-numbers
+        middleIndex = Math.round(middleIndex) === middleIndex ? middleIndex : -1;
+        for (index = 0; index < length; index++) {
+          target[index] = middleIndex === index ? this.target()[index] : this.get(index);
         }
       }
 
       backup.apply(target, arguments);
+
+      if (thisIsProxy) {
+        for (index = 0; index < length; index++) {
+          if (middleIndex !== index) this.set(index, target[index]);
+        }
+      }
+
       return this;
     };
   }
@@ -114,7 +126,7 @@ window.toStringBackup = window.toStringBackup || Function.prototype.toString;
 
         target.length = 0;
         for (var i = 0; i < length; i++) {
-          target[i] = newArray[i];
+          this.set(i, newArray[i]);
         }
       } else {
         backup.apply(target, arguments);
@@ -220,6 +232,24 @@ window.toStringBackup = window.toStringBackup || Function.prototype.toString;
     eval(fnName + ' = fn;');
   }
 
+  function buildWithAParamTargetParsed(fnName, index) {
+    var backup = eval(fnName);
+
+    var fn = function() { //eslint-disable-line
+      var argLen = arguments.length;
+      var args = [];
+      for (var argIndex = 0; argIndex < argLen; argIndex++) {
+        args[argIndex] = arguments[argIndex];
+      }
+
+      args[index] = formatTargetObject(args[index], true);
+
+      return backup.apply(this, args); //eslint-disable-line no-invalid-this
+    };
+
+    eval(fnName + ' = fn;');
+  }
+
   buildObjectCreate();
   buildSetPrototypeOf();
   buildConcat();
@@ -273,6 +303,9 @@ window.toStringBackup = window.toStringBackup || Function.prototype.toString;
     'Array.prototype.indexOf',
     'Array.prototype.lastIndexOf'
   ], buildWithThisAsFormattedTarget);
+
+  buildWithAParamTargetParsed('Object.defineProperties', 1);
+  buildWithAParamTargetParsed('Object.defineProperty', 2); // eslint-disable-line no-magic-numbers
 })();
 
 window.nativePatchCalled = true;
@@ -413,16 +446,26 @@ if (!window.Proxy) {
     return newArr;
   };
 
-  window.Proxy.prototype.formatTargetObject = function() {
-    var newObj = {};
-    var keys = Object.getOwnPropertyNames(this.target());
-    var keyLength = keys.length;
-    for (var i = 0; i < keyLength; i++) {
-      var key = keys[i];
-      newObj[key] = this.get(key, this);
-    }
-    return newObj;
+  window.Proxy.prototype.formatTargetObject = function(deep) {
+    return formatTargetObject(this, deep);
   };
+}
+
+function formatTargetObject(obj, deep) {
+  if (!isProxy(obj)) return obj;
+
+  var newObj = {};
+  var keys = Object.getOwnPropertyNames(obj.target());
+  var keyLength = keys.length;
+  for (var i = 0; i < keyLength; i++) {
+    var key = keys[i];
+    var value = obj.get(key, obj);
+    if (deep) {
+      value = formatTargetObject(value, deep);
+    }
+    newObj[key] = value;
+  }
+  return newObj;
 }
 
 /* eslint-enable prefer-rest-params, no-var, comma-dangle */

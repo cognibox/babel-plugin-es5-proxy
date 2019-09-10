@@ -28,7 +28,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
               });
               var descriptor = {
                 foo: {
-                  writtable: true,
+                  writable: true,
                   configurable: true,
                   enumerable: true,
                   value: ${VALUE}
@@ -38,7 +38,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
                 get: function(target, property) {
                   var desc = target[property];
                   return {
-                    writtable: desc.writtable,
+                    writable: desc.writable,
                     configurable: desc.configurable,
                     enumerable: desc.enumerable,
                     value: desc.value + ${modifier}
@@ -64,7 +64,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
               var mainObject = { a: ${VALUE} };
               var descriptor = {
                 foo: {
-                  writtable: true,
+                  writable: true,
                   configurable: true,
                   enumerable: true,
                   value: ${fooValue}
@@ -107,6 +107,62 @@ describe('babel-plugin-es5-proxy @medium', () => {
             const output = buildRun(code);
 
             expect(output).to.be.true;
+          });
+
+          context('when argument is a proxy', () => {
+            it('should work', () => {
+              const multiplier = 4;
+              const code = `
+                var target = { value: ${VALUE} };
+
+                var v = {
+                  enumerable: undefined,
+                  get: undefined
+                };
+                var vProxy = new Proxy(v, {
+                  get: function(t, p) {
+                    if (p === 'enumerable') return true;
+                    if (p === 'get') return function() { return this; };
+
+                    return t[p];
+                  }
+                });
+
+                var vv = {
+                  enumerable: undefined,
+                  get: undefined
+                };
+                var vvProxy = new Proxy(v, {
+                  get: function(t, p) {
+                    if (p === 'enumerable') return true;
+                    if (p === 'get') return function() { return ${multiplier}; };
+
+                    return t[p];
+                  }
+                });
+
+                var handler = {
+                  v: {},
+                  vv: {}
+                };
+                var handlerProxy = new Proxy(handler, {
+                  get: function(t, p) {
+                    if (p === 'v') return vProxy;
+                    if (p === 'vv') return vvProxy;
+
+                    return t[p];
+                  }
+                });
+
+                Object.defineProperties(target, handlerProxy);
+
+                (target.v.value * target.vv) == (${VALUE} * ${multiplier});
+              `;
+
+              const output = buildRun(code);
+
+              expect(output).to.be.true;
+            });
           });
         });
 
@@ -176,6 +232,35 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
             expect(output).to.be.true;
           });
+
+          context('when argument is a proxy', () => {
+            it('should work', () => {
+              const code = `
+                var target = { value: ${VALUE} };
+
+                var v = {
+                  enumerable: undefined,
+                  get: undefined
+                };
+                var vProxy = new Proxy(v, {
+                  get: function(t, p) {
+                    if (p === 'enumerable') return true;
+                    if (p === 'get') return function() { return this; };
+
+                    return t[p];
+                  }
+                });
+
+                Object.defineProperty(target, 'self', vProxy);
+
+                target.self === target;
+              `;
+
+              const output = buildRun(code);
+
+              expect(output).to.be.true;
+            });
+          });
         });
 
         context('without proxies', () => {
@@ -200,7 +285,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
         });
       });
 
-      context('Object.freeze', () => {
+      context.only('Object.freeze', () => {
         context('with proxy', () => {
           it('should freeze the target', () => {
             const code = `
@@ -209,12 +294,13 @@ describe('babel-plugin-es5-proxy @medium', () => {
               Object.freeze(proxy);
 
               obj.value = ${VALUE};
-              obj.value;
+
+              obj.value === undefined && Object.isFrozen(proxy);
             `;
 
             const output = buildRun(code);
 
-            expect(output).to.be.undefined;
+            expect(output).to.be.true;
           });
         });
 
@@ -1338,20 +1424,32 @@ describe('babel-plugin-es5-proxy @medium', () => {
         context('with proxy', () => {
           it('should work', () => {
             const OTHER = randomNumber();
+            const MIDDLE = randomNumber();
             const MULTIPLIER = 3;
+            const ADDER = 5;
             const code = `
-              var obj = [${VALUE}, ${OTHER}];
+              var obj = [${VALUE}, ${MIDDLE}, ${OTHER}];
               var proxy = new Proxy(obj, {
-                get(t, p) {
+                get: function(t, p) {
                   var value = t[p];
                   if (!isNaN(parseInt(p.toString()))) {
                     value = value * ${MULTIPLIER};
                   }
                   return value;
+                },
+
+                set: function(t, p, v) {
+                  if (!isNaN(parseInt(p.toString()))) {
+                    v = v + ${ADDER};
+                  }
+
+                  t[p] = v;
+
+                  return true;
                 }
               });
               var callValue = Array.prototype.reverse.call(proxy);
-              callValue === proxy && obj.length === 2 && obj[0] === ${OTHER} * ${MULTIPLIER}
+              callValue === proxy && obj.length === 3 && obj[0] === ${OTHER} * ${MULTIPLIER} + ${ADDER} && obj[1] === ${MIDDLE}
             `;
 
             const output = buildRun(code);
@@ -1467,15 +1565,26 @@ describe('babel-plugin-es5-proxy @medium', () => {
         context('with proxy', () => {
           xit('should work', () => {
             const MULTIPLIER = 3;
+            const ADDER = 5;
             const code = `
               var obj = [3,2,1,4,5];
               var proxy = new Proxy(obj, {
-                get(t, p) {
+                get: function(t, p) {
                   var value = t[p];
                   if (p == '1') {
                     value = value * ${MULTIPLIER};
                   }
                   return value;
+                },
+
+                set: function(t, p, v) {
+                  if (p == '1') {
+                    v = v + ${ADDER};
+                  }
+
+                  t[p] = v;
+
+                  return true;
                 }
               });
               var value = Array.prototype.sort.call(proxy);
@@ -1484,7 +1593,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
             const output = buildRun(code);
 
-            expect(output).to.deep.equal([1, 3, 4, 5, 6]); // eslint-disable-line no-magic-numbers
+            expect(output).to.deep.equal([1, 8, 4, 5, 6]); // eslint-disable-line no-magic-numbers
           });
         });
 
@@ -2264,28 +2373,6 @@ describe('babel-plugin-es5-proxy @medium', () => {
           expect(output[0]).to.equal(VALUE);
         });
       });
-
-      // context.only('when using a for of', () => {
-      //   const code = `
-      //     const proxy = new Proxy([${VALUE}], {});
-      //     for (let item of proxy) item
-      //   `;
-
-      //   const output = buildRun(code);
-
-      //   expect(output).to.equal(VALUE);
-      // });
-
-      // context('when using a for in', () => {
-      //   const code = `
-      //     const proxy = new Proxy([${VALUE}], {});
-      //     for (let key in proxy) proxy[key]
-      //   `;
-
-      //   const output = buildRun(code);
-
-      //   expect(output).to.equal(VALUE);
-      // });
     });
   });
 
