@@ -7,12 +7,8 @@ window.toStringBackup = window.toStringBackup || Function.prototype.toString;
   function buildObjectCreate() {
     var backup = Object.create;
 
-    function isObject(obj) {
-      return typeof obj === 'object' && obj !== null;
-    }
-
     function buildObject(obj) {
-      if (!isObject(obj) || !isProxy(obj)) return obj;
+      if (!isProxy(obj)) return obj;
 
       return obj.formatTarget();
     }
