@@ -2227,7 +2227,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
           function nbr() { return ${VALUE}; }
           var stuff = { nbr: nbr };
           mew:
-          for(var i = 0; i < stuff.nbr() * 2; i++) {
+          for(var i = 0; i <= stuff.nbr() * 2; i++) {
             index++;
             continue mew;
           }
@@ -2236,7 +2236,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
         const output = buildRun(code);
 
-        expect(output).to.equal(Math.round(VALUE));
+        expect(output).to.equal(Math.round(VALUE * 2)); // eslint-disable-line no-magic-numbers
       });
     });
   });
@@ -3619,7 +3619,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
           function nbr() { return ${VALUE}; }
           var stuff = { nbr: nbr };
           var i = 0;
-          for(stuff.nbr(); i < stuff.nbr() * 2; i++) {
+          for(stuff.nbr(); i <= stuff.nbr() * 2; i++) {
             index++;
           }
           index - 1;
@@ -3627,7 +3627,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
         const output = buildRun(code);
 
-        expect(output).to.equal(Math.round(VALUE));
+        expect(output).to.equal(Math.round(VALUE * 2)); // eslint-disable-line no-magic-numbers
       });
     });
 

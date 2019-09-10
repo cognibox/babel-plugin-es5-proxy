@@ -309,10 +309,6 @@ window.toStringBackup = window.toStringBackup || Function.prototype.toString;
 
 window.__me__stuff__executed = true;
 
-function isNativeCode(fn) {
-  return !!window.toStringBackup.call(fn).match(/\[native code\]/);
-}
-
 function globalDeleter(object, propertyName) {
   return isProxy(object) ? object.deleteProperty(propertyName) : delete object[propertyName];
 }
