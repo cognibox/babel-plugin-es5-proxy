@@ -1749,10 +1749,9 @@ describe('babel-plugin-es5-proxy @medium', () => {
               var array = [1, 2, 3, 4, 1];
               var proxy = new Proxy(array, { get(target, property) {
                 if (property === 'length' || property === 'constructor') return target[property];
-                target[property].value += 1;
-                return target[property];
-              }})
-              Array.prototype.indexOf.call(proxy, function (val) { return val === 2})
+                return target[property] + 1;
+              }});
+              Array.prototype.indexOf.call(proxy, 2);
             `;
 
             const output = buildRun(code);
@@ -1765,7 +1764,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
           it('should work', () => {
             const code = `
               var array = [1, 2, 3, 4, 1];
-              Array.prototype.indexOf.call(array, 1)
+              Array.prototype.indexOf.call(array, 1);
             `;
 
             const output = buildRun(code);
@@ -1898,10 +1897,9 @@ describe('babel-plugin-es5-proxy @medium', () => {
               var array = [1, 2, 3, 4, 1];
               var proxy = new Proxy(array, { get(target, property) {
                 if (property === 'length' || property === 'constructor') return target[property];
-                target[property].value += 1;
-                return target[property];
+                return target[property] + 1;
               }})
-              Array.prototype.lastIndexOf.call(proxy, function (val) { return val === 2})
+              Array.prototype.lastIndexOf.call(proxy, 2)
             `;
 
             const output = buildRun(code);

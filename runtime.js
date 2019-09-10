@@ -272,9 +272,7 @@ window.toStringBackup = window.toStringBackup || Function.prototype.toString;
     'Object.prototype.__lookupGetter__',
     'Object.prototype.__lookupSetter__',
     'Array.prototype.push',
-    'Array.prototype.unshift',
-    'Array.prototype.lastIndexOf',
-    'Array.prototype.indexOf'
+    'Array.prototype.unshift'
   ], buildWithThisAsTarget);
 
   buildFunctions([
@@ -290,7 +288,7 @@ window.toStringBackup = window.toStringBackup || Function.prototype.toString;
     'Object.preventExtensions',
     'Object.seal',
     'Object.prototype.isPrototypeOf',
-    'Array.isArray',
+    'Array.isArray'
   ], buildWithFirstParamAsTarget);
 
   buildFunctions([
@@ -304,6 +302,8 @@ window.toStringBackup = window.toStringBackup || Function.prototype.toString;
     'Array.prototype.reduceRight',
     'Array.prototype.map',
     'Array.prototype.forEach',
+    'Array.prototype.indexOf',
+    'Array.prototype.lastIndexOf'
   ], buildWithThisAsFormattedTarget);
 })();
 
