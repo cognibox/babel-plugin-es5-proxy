@@ -408,48 +408,33 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
       context('Object.getPrototypeOf', () => {
         context('with proxy', () => {
-          it('should return Object.getOwnPropertyNames(target)', () => {
-            const otherValue = randomNumber();
+          it('should use it on target', () => {
             const code = `
-              var obj = { value: ${VALUE} };
-              Object.defineProperty(obj, 'other', {
-                enumerable: true,
-                writable: true,
-                configurable: true,
-                value: ${otherValue}
-              });
-
+              var parentObj = {}
+              var obj = Object.create(parentObj);
               var proxy = new Proxy(obj, {});
 
-              Object.getOwnPropertyNames(proxy);
+              Object.getPrototypeOf(proxy) === parentObj;
             `;
 
             const output = buildRun(code);
 
-            expect(output).to.deep.equal(['value', 'other']);
+            expect(output).to.be.true;
           });
         });
 
         context('without proxy', () => {
-          it('should return Object.getOwnPropertyNames(target)', () => {
-            const otherValue = randomNumber();
+          it('should work', () => {
             const code = `
-              var obj = { value: ${VALUE} };
-              Object.defineProperty(obj, 'other', {
-                enumerable: true,
-                writable: true,
-                configurable: true,
-                value: ${otherValue}
-              });
+              var parentObj = {}
+              var obj = Object.create(parentObj);
 
-              var proxy = new Proxy(obj, {});
-
-              Object.getOwnPropertyNames(proxy);
+              Object.getPrototypeOf(obj) === parentObj;
             `;
 
             const output = buildRun(code);
 
-            expect(output).to.deep.equal(['value', 'other']);
+            expect(output).to.be.true;
           });
         });
       });
