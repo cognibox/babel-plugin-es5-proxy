@@ -1579,7 +1579,38 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
           context('when start is negative', () => {
             it('should work', () => {
+              const code = `
+                var months = ['Jan', 'March', 'April', 'June'];
+                var proxy = new Proxy(months, {
+                  get: function(t, p) {
+                    var value = t[p];
+                    if (p !== 'length' && p !== 'constructor') {
+                      value = value + ' getted'
+                    }
+                    return value;
+                  },
 
+                  set: function(t, p, v) {
+                    t[p] = v;
+
+                    if (p !== 'length') {
+                      t[p] = v + ' setted';
+                    } else {
+                      t[p] = v;
+                    }
+
+                    return true;
+                  }
+                });
+
+                Array.prototype.splice.call(proxy, -2, 1, 'Error', 'May');
+
+                months;
+              `;
+
+              const output = buildRun(code);
+
+              expect(output).to.deep.equal(['Jan', 'March', 'Error setted', 'May setted', 'June getted setted']);
             });
           });
         });

@@ -199,7 +199,7 @@ window.toStringBackup = window.toStringBackup || Function.prototype.toString;
         }
 
         for (i = 0; i < toKeepLength; i++) {
-          this.set(start + i + 1, toKeep[i]);
+          this.set(start + i + itemToAddLength, toKeep[i]);
         }
 
         return deletedElements;
