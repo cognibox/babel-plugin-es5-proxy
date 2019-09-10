@@ -1776,8 +1776,68 @@ describe('babel-plugin-es5-proxy @medium', () => {
       });
 
       context('Array.prototype.every', () => {
-        it('should be written', () => {
-          expect(true).to.be.false;
+        context('with proxy', () => {
+          context('when the array contains only truthy values', () => {
+            it('should return true', () => {
+              const code = `
+                var arr = [3, 3, 3, 3];
+                var proxy = new Proxy(arr, { get(target, property) {
+                  if (property === 'length') return target[property];
+                  return target[property] + 1;
+                } });
+                Array.prototype.every.call(proxy, (elem) => elem === 4);
+              `;
+
+              const output = buildRun(code);
+
+              expect(output).to.be.true;
+            });
+          });
+
+          context('when the array contains a falsey value', () => {
+            it('should return false', () => {
+              const code = `
+                var arr = [3, 3, 3, false];
+                var proxy = new Proxy(arr, { get(target, property) {
+                  if (property === 'length') return target[property];
+                  return target[property] + 1;
+                } });
+                Array.prototype.every.call(proxy, (elem) => elem === 3);
+              `;
+
+              const output = buildRun(code);
+
+              expect(output).to.be.false;
+            });
+          });
+
+          context('without proxy', () => {
+            context('when the array contains only truthy value', () => {
+              it('should return true', () => {
+                const code = `
+                var arr = [3, 3, 3, 3];
+                Array.prototype.every.call(arr, (elem) => elem === 3);
+              `;
+
+                const output = buildRun(code);
+
+                expect(output).to.be.true;
+              });
+            });
+
+            context('when the array contains a falsey value', () => {
+              it('should return false', () => {
+                const code = `
+                var arr = [3, false, 3, 3];
+                Array.prototype.every.call(arr, (elem) => elem === 3);
+              `;
+
+                const output = buildRun(code);
+
+                expect(output).to.be.false;
+              });
+            });
+          });
         });
       });
 
