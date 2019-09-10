@@ -31,7 +31,7 @@ window.toStringBackup = window.toStringBackup || Function.prototype.toString;
 // })();
 
 (function() { //eslint-disable-line
-  if (window.__me__stuff__executed) return;
+  if (window.nativePatchCalled) return;
 
   function buildObjectCreate() {
     var backup = Object.create;
@@ -70,7 +70,7 @@ window.toStringBackup = window.toStringBackup || Function.prototype.toString;
     var backup = Array.prototype.concat;
 
     Array.prototype.concat = function() { //eslint-disable-line
-      var self = isProxy(this) ? this.formatTarget() : this;
+      var target = isProxy(this) ? this.formatTarget() : this;
       var argLen = arguments.length;
       var args = [];
       for (var argIndex = 0; argIndex < argLen; argIndex++) {
@@ -78,7 +78,7 @@ window.toStringBackup = window.toStringBackup || Function.prototype.toString;
         args[argIndex] = isProxy(arg) ? arg.formatTarget() : arg;
       }
 
-      return backup.apply(self, args);
+      return backup.apply(target, args);
     };
   }
 
@@ -162,7 +162,7 @@ window.toStringBackup = window.toStringBackup || Function.prototype.toString;
 
     Array.prototype.splice = function(start, deleteCount) { //eslint-disable-line
       if (isProxy(this)) {
-        var len =  this.get('length');
+        var len = this.get('length');
         var relativeStart = parseInt(start, 10);
 
         if (relativeStart < 0) {
@@ -174,7 +174,7 @@ window.toStringBackup = window.toStringBackup || Function.prototype.toString;
         var items = [];
         var argLength = arguments.length;
         for (var i = 2; i < argLength; i++) {
-          items[i - 2] = arguments[i];
+          items[i - 2] = arguments[i]; //eslint-disable-line no-magic-numbers
         }
 
         var nbr = start + deleteCount;
@@ -221,8 +221,8 @@ window.toStringBackup = window.toStringBackup || Function.prototype.toString;
     var backup = eval(fnName);
 
     var fn = function() { //eslint-disable-line
-      var self = isProxy(this) ? this.formatTarget() : this;
-      return backup.apply(self, arguments);
+      var target = isProxy(this) ? this.formatTarget() : this; //eslint-disable-line no-invalid-this
+      return backup.apply(target, arguments);
     };
 
     eval(fnName + ' = fn;');
@@ -232,7 +232,7 @@ window.toStringBackup = window.toStringBackup || Function.prototype.toString;
     var backup = eval(fnName);
 
     var fn = function() { //eslint-disable-line
-      return backup.apply(objectTarget(this), arguments);
+      return backup.apply(objectTarget(this), arguments); //eslint-disable-line no-invalid-this
     };
 
     eval(fnName + ' = fn;');
@@ -247,7 +247,7 @@ window.toStringBackup = window.toStringBackup || Function.prototype.toString;
       for (var argIndex = 1; argIndex < argLen; argIndex++) {
         args[argIndex] = arguments[argIndex];
       }
-      return backup.apply(this, args);
+      return backup.apply(this, args); //eslint-disable-line no-invalid-this
     };
 
     eval(fnName + ' = fn;');
@@ -308,7 +308,7 @@ window.toStringBackup = window.toStringBackup || Function.prototype.toString;
   ], buildWithThisAsFormattedTarget);
 })();
 
-window.__me__stuff__executed = true;
+window.nativePatchCalled = true;
 
 function globalDeleter(object, propertyName) {
   return isProxy(object) ? object.deleteProperty(propertyName) : delete object[propertyName];
@@ -367,14 +367,6 @@ function isProxy(object) {
 
 function objectTarget(object) {
   return isProxy(object) ? object.target() : object;
-}
-
-function objectTargets(objects) {
-  var targets = [];
-  for (var i = 0; i < objects.length; i++) {
-    targets.push(objectTarget(objects[i]));
-  }
-  return targets;
 }
 
 if (!window.Proxy) {

@@ -3,6 +3,7 @@
     "beforeEach": true,
     "context": true,
     "describe": true,
-    "it": true
+    "it": true,
+    "xit": true
   }
 }

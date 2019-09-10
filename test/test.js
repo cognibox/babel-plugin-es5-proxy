@@ -751,10 +751,6 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
               expect(output).to.be.false;
             });
-
-            context('when a trap is set for getOwnPropertyDescriptor', () => {
-
-            });
           });
         });
 

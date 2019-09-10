@@ -19,6 +19,7 @@ let evalName,
 function addRuntimeToFile(path) {
   const runtime = fs.readFileSync(require.resolve('./runtime.js'))
     .toString()
+    .replace(/nativePatchCalled/g, variableName('native_patch_called'))
     .replace(/globalCaller/g, globalCallerName)
     .replace(/globalDeleter/g, globalDeleterName)
     .replace(/globalGetter/g, globalGetterName)
