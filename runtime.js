@@ -271,7 +271,8 @@ window.toStringBackup = window.toStringBackup || Function.prototype.toString;
     'Object.prototype.__defineSetter__',
     'Object.prototype.__lookupGetter__',
     'Object.prototype.__lookupSetter__',
-    'Array.prototype.push'
+    'Array.prototype.push',
+    'Array.prototype.unshift'
   ], buildWithThisAsTarget);
 
   buildFunctions([
@@ -292,7 +293,13 @@ window.toStringBackup = window.toStringBackup || Function.prototype.toString;
 
   buildFunctions([
     'Array.prototype.join',
-    'Array.prototype.slice'
+    'Array.prototype.slice',
+    'Array.prototype.some',
+    'Array.prototype.reduce',
+    'Array.prototype.reduceRight',
+    'Array.prototype.map',
+    'Array.prototype.forEach',
+    'Array.prototype.lastIndexOf'
   ], buildWithThisAsFormattedTarget);
 })();
 
