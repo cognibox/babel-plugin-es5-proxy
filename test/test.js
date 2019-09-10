@@ -1601,11 +1601,15 @@ describe('babel-plugin-es5-proxy @medium', () => {
       });
 
       context('Array.prototype.toLocaleString', () => {
-
+        it('should be written', () => {
+          expect(true).to.be.false;
+        });
       });
 
       context('Array.prototype.toString', () => {
-
+        it('should be written', () => {
+          expect(true).to.be.false;
+        });
       });
 
       context('Array.prototype.unshift', () => {
@@ -1677,11 +1681,15 @@ describe('babel-plugin-es5-proxy @medium', () => {
       });
 
       context('Array.prototype.every', () => {
-
+        it('should be written', () => {
+          expect(true).to.be.false;
+        });
       });
 
       context('Array.prototype.filter', () => {
-
+        it('should be written', () => {
+          expect(true).to.be.false;
+        });
       });
 
       context('Array.prototype.forEach', () => {
