@@ -2189,58 +2189,6 @@ describe('babel-plugin-es5-proxy @medium', () => {
     });
   });
 
-  // describe('mew mew stuff faster mew', () => {
-  //   it('should pew fast', () => {
-  //     const code = `
-  //       function mul3(value) {
-  //         return value * 3;
-  //       }
-
-  //       function mul6(value) {
-  //         return mul3(value) * 2;
-  //       }
-
-  //       var aStart = new Date();
-
-  //       var obj = {
-  //         mul3: mul3,
-  //         mul6: mul6
-  //       };
-
-  //       var data = [];
-  //       for(var i =0; i<=10000; i++) {
-  //         data.push(obj.mul6(i));
-  //       }
-
-  //       var aEnd = new Date();
-
-  //       console.log(aEnd - aStart);
-  //     `;
-
-  //     buildRun(code);
-  //   });
-
-  //   // it('no no', () => {
-  //   //   const code = `
-  //   //     var obj = { id: ${VALUE} };
-  //   //     var proxy = new Proxy(obj, {
-  //   //       get(target, property) {
-  //   //         return ${VALUE} + 1;
-  //   //       }
-  //   //     });
-
-  //   //     var items = [];
-  //   //     items.push(proxy);
-
-  //   //     items[0].id
-  //   //   `;
-
-  //   //   const output = buildRun(code, true);
-
-  //   //   expect(output).to.equal(VALUE);
-  //   // });
-  // });
-
   describe('labeled Statement', () => {
     context('when using a labeled continue', () => {
       it('continue the right loop', () => {
