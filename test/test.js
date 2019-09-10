@@ -1841,8 +1841,67 @@ describe('babel-plugin-es5-proxy @medium', () => {
       });
 
       context('Array.prototype.filter', () => {
-        it('should be written', () => {
-          expect(true).to.be.false;
+        context('with proxy', () => {
+          context('when array element are proxies', () => {
+            it('should work', () => {
+              const code = `
+                var handler = {
+                  get: function(target, property) {
+                    if (property == 'value') return target[property] * 3;
+
+                    return target[property];
+                  }
+                };
+                var arr = [
+                  new Proxy({ value: 1 }, handler),
+                  new Proxy({ value: 2 }, handler),
+                  new Proxy({ value: 3 }, handler)
+                ];
+
+                Array.prototype.filter.call(arr, (elem) => elem.value > 3).length;
+              `;
+
+              const output = buildRun(code);
+
+              const expectedLength = 2;
+              expect(output).to.equal(expectedLength);
+            });
+          });
+
+          context('when array is a proxy', () => {
+            it('should work', () => {
+              const code = `
+                var arr = [1, 2, 3];
+                var proxy = new Proxy(arr, {
+                  get: function(target, property) {
+                    if (property === 'length' || property === 'constructor') return target[property];
+                    return target[property] * 3;
+                  }
+                });
+
+                Array.prototype.filter.call(proxy, (elem) => elem > 3).length;
+              `;
+
+              const output = buildRun(code);
+
+              const expectedLength = 2;
+              expect(output).to.equal(expectedLength);
+            });
+          });
+        });
+
+        context('without proxy', () => {
+          it('should work', () => {
+            const code = `
+              var arr = [{ value: 1 }, { value: 2 }, { value: 3 }];
+              Array.prototype.filter.call(arr, (elem) => elem.value > 1);
+            `;
+
+            const output = buildRun(code);
+
+            const expectedLength = 2;
+            expect(output.length).to.equal(expectedLength);
+          });
         });
       });
 

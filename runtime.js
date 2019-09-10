@@ -297,6 +297,7 @@ window.toStringBackup = window.toStringBackup || Function.prototype.toString;
     'Array.prototype.toLocaleString',
     'Array.prototype.toString',
     'Array.prototype.some',
+    'Array.prototype.filter',
     'Array.prototype.every',
     'Array.prototype.reduce',
     'Array.prototype.reduceRight',
