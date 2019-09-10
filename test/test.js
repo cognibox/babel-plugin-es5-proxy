@@ -1609,11 +1609,71 @@ describe('babel-plugin-es5-proxy @medium', () => {
       });
 
       context('Array.prototype.unshift', () => {
+        context('with proxy', () => {
+          it('should use target', () => {
+            const code = `
+              var obj = [];
+              var proxy = new Proxy(obj, {});
 
+              Array.prototype.unshift.call(proxy, ${VALUE});
+
+              obj;
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.deep.equal([VALUE]);
+          });
+        });
+
+        context('with proxy', () => {
+          it('should work', () => {
+            const code = `
+              var obj = [];
+
+              Array.prototype.unshift.call(obj, ${VALUE});
+
+              obj;
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.deep.equal([VALUE]);
+          });
+        });
       });
 
       context('Array.prototype.indexOf', () => {
+        context('with proxy', () => {
+          it('should work', () => {
+            const code = `
+              var array = [1, 2, 3, 4, 1];
+              var proxy = new Proxy(array, { get(target, property) {
+                if (property === 'length' || property === 'constructor') return target[property];
+                target[property].value += 1;
+                return target[property];
+              }})
+              Array.prototype.indexOf.call(proxy, function (val) { return val === 2})
+            `;
 
+            const output = buildRun(code);
+
+            expect(output).to.equal(0); // eslint-disable-line no-magic-numbers
+          });
+        });
+
+        context('without proxy', () => {
+          it('should work', () => {
+            const code = `
+              var array = [1, 2, 3, 4, 1];
+              Array.prototype.indexOf.call(array, 1)
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.equal(0); // eslint-disable-line no-magic-numbers
+          });
+        });
       });
 
       context('Array.prototype.every', () => {
@@ -1625,15 +1685,120 @@ describe('babel-plugin-es5-proxy @medium', () => {
       });
 
       context('Array.prototype.forEach', () => {
+        context('with proxy', () => {
+          it('should work', () => {
+            const code = `
+              var rtn = [];
+              var that = new Proxy({multiplier: 1}, { get(target, property) { return target[property] * 2; }});
+              var array = [
+                new Proxy({ value: 1 }, { get(target, property) { if (property === 'value') return target[property] * 2; return target[property]; } }),
+                new Proxy({ value: 1 }, { get(target, property) { if (property === 'value') return target[property] * 2; return target[property]; } }),
+                new Proxy({ value: 1 }, { get(target, property) { if (property === 'value') return target[property] * 2; return target[property]; } }),
+                new Proxy({ value: 1 }, { get(target, property) { if (property === 'value') return target[property] * 2; return target[property]; } }),
+                new Proxy({ value: 1 }, { get(target, property) { if (property === 'value') return target[property] * 2; return target[property]; } }),
+              ];
+              var proxy = new Proxy(array, { get(target, property) {
+                if (property === 'length' || property === 'constructor') return target[property];
+                target[property].value += 1;
+                return target[property];
+              }})
+              Array.prototype.forEach.call(proxy, function (val) { rtn.push(val.value * this.multiplier); }, that)
+              rtn;
+            `;
 
+            const output = buildRun(code);
+
+            expect(output).to.deep.equal([12, 12, 12, 12, 12]); // eslint-disable-line no-magic-numbers
+          });
+        });
+
+        context('without proxy', () => {
+          it('should work', () => {
+            const code = `
+              var rtn = [];
+              var array = [1, 1, 1, 1, 1];
+              array.forEach(function(val) { rtn.push(val * this.multiplier) }, { multiplier: 2 })
+              rtn;
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.deep.equal([2, 2, 2, 2, 2]); // eslint-disable-line no-magic-numbers
+          });
+        });
       });
 
       context('Array.prototype.lastIndexOf', () => {
+        context('with proxy', () => {
+          it('should work', () => {
+            const code = `
+              var array = [1, 2, 3, 4, 1];
+              var proxy = new Proxy(array, { get(target, property) {
+                if (property === 'length' || property === 'constructor') return target[property];
+                target[property].value += 1;
+                return target[property];
+              }})
+              Array.prototype.lastIndexOf.call(proxy, function (val) { return val === 2})
+            `;
 
+            const output = buildRun(code);
+
+            expect(output).to.equal(4); // eslint-disable-line no-magic-numbers
+          });
+        });
+
+        context('without proxy', () => {
+          it('should work', () => {
+            const code = `
+              var array = [1, 2, 3, 4, 1];
+              Array.prototype.lastIndexOf.call(array, 1)
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.equal(4); // eslint-disable-line no-magic-numbers
+          });
+        });
       });
 
       context('Array.prototype.map', () => {
+        context('with proxy', () => {
+          it('should work', () => {
+            const code = `
+              var that = new Proxy({multiplier: 1}, { get(target, property) { return target[property] * 2; }});
+              var array = [
+                new Proxy({ value: 1 }, { get(target, property) { if (property === 'value') return target[property] * 2; return target[property]; } }),
+                new Proxy({ value: 1 }, { get(target, property) { if (property === 'value') return target[property] * 2; return target[property]; } }),
+                new Proxy({ value: 1 }, { get(target, property) { if (property === 'value') return target[property] * 2; return target[property]; } }),
+                new Proxy({ value: 1 }, { get(target, property) { if (property === 'value') return target[property] * 2; return target[property]; } }),
+                new Proxy({ value: 1 }, { get(target, property) { if (property === 'value') return target[property] * 2; return target[property]; } }),
+              ];
+              var proxy = new Proxy(array, { get(target, property) {
+                if (property === 'length' || property === 'constructor') return target[property];
+                target[property].value += 1;
+                return target[property];
+              }})
+              Array.prototype.map.call(proxy, function (val) { return this.multiplier * val.value }, that)
+            `;
 
+            const output = buildRun(code);
+
+            expect(output).to.deep.equal([12, 12, 12, 12, 12]); // eslint-disable-line no-magic-numbers
+          });
+        });
+
+        context('without proxy', () => {
+          it('should work', () => {
+            const code = `
+              var array = [1, 1, 1, 1, 1];
+              array.map(function(val) { return val * this.multiplier; }, { multiplier: 2 })
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.deep.equal([2, 2, 2, 2, 2]); // eslint-disable-line no-magic-numbers
+          });
+        });
       });
 
       context('Array.prototype.reduce', () => {
@@ -1657,7 +1822,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
             const output = buildRun(code);
 
-            expect(output).to.eq(31); // eslint-disable-line no-magic-numbers
+            expect(output).to.equal(31); // eslint-disable-line no-magic-numbers
           });
         });
 
@@ -1670,7 +1835,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
             const output = buildRun(code);
 
-            expect(output).to.eq(6); // eslint-disable-line no-magic-numbers
+            expect(output).to.equal(6); // eslint-disable-line no-magic-numbers
           });
         });
       });
@@ -1696,7 +1861,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
             const output = buildRun(code);
 
-            expect(output).to.eq(31); // eslint-disable-line no-magic-numbers
+            expect(output).to.equal(31); // eslint-disable-line no-magic-numbers
           });
         });
 
@@ -1709,7 +1874,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
             const output = buildRun(code);
 
-            expect(output).to.eq(6); // eslint-disable-line no-magic-numbers
+            expect(output).to.equal(6); // eslint-disable-line no-magic-numbers
           });
         });
       });
@@ -2023,7 +2188,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
         const output = buildRun(code);
 
-        expect(output).to.eq(VALUE);
+        expect(output).to.equal(VALUE);
       });
 
       context('when using es6 syntax', () => {
@@ -2052,7 +2217,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
             const output = buildRun(code);
 
-            expect(output).to.eq(VALUE + 1);
+            expect(output).to.equal(VALUE + 1);
           });
 
           it('should return the property plus 1', () => {
@@ -2063,7 +2228,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
             const output = buildRun(code);
 
-            expect(output).to.eq(VALUE + 1);
+            expect(output).to.equal(VALUE + 1);
           });
         });
       });
@@ -2079,7 +2244,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
             const output = buildRun(code);
 
-            expect(output).to.eq(VALUE - 1);
+            expect(output).to.equal(VALUE - 1);
           });
 
           it('should return the property minus 1', () => {
@@ -2090,7 +2255,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
             const output = buildRun(code);
 
-            expect(output).to.eq(VALUE - 1);
+            expect(output).to.equal(VALUE - 1);
           });
         });
       });
@@ -2107,7 +2272,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
             const output = buildRun(code);
 
-            expect(output).to.eq(VALUE * n);
+            expect(output).to.equal(VALUE * n);
           });
 
           it('should return the property multiplied by 2', () => {
@@ -2119,7 +2284,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
             const output = buildRun(code);
 
-            expect(output).to.eq(VALUE * n);
+            expect(output).to.equal(VALUE * n);
           });
         });
       });
@@ -2136,7 +2301,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
             const output = buildRun(code);
 
-            expect(output).to.eq(VALUE / n);
+            expect(output).to.equal(VALUE / n);
           });
 
           it('should return the property divided by 2', () => {
@@ -2148,7 +2313,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
             const output = buildRun(code);
 
-            expect(output).to.eq(VALUE / n);
+            expect(output).to.equal(VALUE / n);
           });
         });
       });
@@ -2168,7 +2333,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
             const output = buildRun(code);
 
-            expect(output).to.eq(NEW_VALUE % n);
+            expect(output).to.equal(NEW_VALUE % n);
           });
 
           it('should return the property modulus 2', () => {
@@ -2182,7 +2347,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
             const output = buildRun(code);
 
-            expect(output).to.eq(NEW_VALUE % n);
+            expect(output).to.equal(NEW_VALUE % n);
           });
         });
       });
@@ -2205,7 +2370,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
             const output = buildRun(code);
 
-            expect(output).to.eq(VALUE & OTHER_VALUE); // eslint-disable-line no-bitwise
+            expect(output).to.equal(VALUE & OTHER_VALUE); // eslint-disable-line no-bitwise
           });
 
           it('should return 5', () => {
@@ -2216,7 +2381,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
             const output = buildRun(code);
 
-            expect(output).to.eq(VALUE & OTHER_VALUE); // eslint-disable-line no-bitwise
+            expect(output).to.equal(VALUE & OTHER_VALUE); // eslint-disable-line no-bitwise
           });
         });
       });
@@ -2239,7 +2404,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
             const output = buildRun(code);
 
-            expect(output).to.eq(VALUE | OTHER_VALUE); // eslint-disable-line no-bitwise
+            expect(output).to.equal(VALUE | OTHER_VALUE); // eslint-disable-line no-bitwise
           });
 
           it('should return 31', () => {
@@ -2250,7 +2415,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
             const output = buildRun(code);
 
-            expect(output).to.eq(VALUE | OTHER_VALUE); // eslint-disable-line no-bitwise
+            expect(output).to.equal(VALUE | OTHER_VALUE); // eslint-disable-line no-bitwise
           });
         });
       });
@@ -2273,7 +2438,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
             const output = buildRun(code);
 
-            expect(output).to.eq(VALUE ^ OTHER_VALUE); // eslint-disable-line no-bitwise
+            expect(output).to.equal(VALUE ^ OTHER_VALUE); // eslint-disable-line no-bitwise
           });
 
           it('should return 26', () => {
@@ -2284,7 +2449,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
             const output = buildRun(code);
 
-            expect(output).to.eq(VALUE ^ OTHER_VALUE); // eslint-disable-line no-bitwise
+            expect(output).to.equal(VALUE ^ OTHER_VALUE); // eslint-disable-line no-bitwise
           });
         });
       });
@@ -2304,7 +2469,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
             const output = buildRun(code);
 
-            expect(output).to.eq(VALUE << 1); // eslint-disable-line no-bitwise
+            expect(output).to.equal(VALUE << 1); // eslint-disable-line no-bitwise
           });
 
           it('should return 40', () => {
@@ -2315,7 +2480,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
             const output = buildRun(code);
 
-            expect(output).to.eq(VALUE << 1); // eslint-disable-line no-bitwise
+            expect(output).to.equal(VALUE << 1); // eslint-disable-line no-bitwise
           });
         });
       });
@@ -2335,7 +2500,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
             const output = buildRun(code);
 
-            expect(output).to.eq(VALUE >>> 1); // eslint-disable-line no-bitwise
+            expect(output).to.equal(VALUE >>> 1); // eslint-disable-line no-bitwise
           });
 
           it('should return 2147483643', () => {
@@ -2346,7 +2511,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
             const output = buildRun(code);
 
-            expect(output).to.eq(VALUE >>> 1); // eslint-disable-line no-bitwise
+            expect(output).to.equal(VALUE >>> 1); // eslint-disable-line no-bitwise
           });
         });
       });
@@ -2364,7 +2529,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
             const output = buildRun(code);
 
-            expect(output).to.eq(1);
+            expect(output).to.equal(1);
           });
 
           it('should return the not incremented property', () => {
@@ -2375,7 +2540,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
             const output = buildRun(code);
 
-            expect(output).to.eq(0);
+            expect(output).to.equal(0);
           });
         });
 
@@ -2389,7 +2554,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
             const output = buildRun(code);
 
-            expect(output).to.eq(1);
+            expect(output).to.equal(1);
           });
 
           it('should return the incremented property', () => {
@@ -2400,7 +2565,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
             const output = buildRun(code);
 
-            expect(output).to.eq(1);
+            expect(output).to.equal(1);
           });
         });
       });
@@ -2416,7 +2581,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
             const output = buildRun(code);
 
-            expect(output).to.eq(-1);
+            expect(output).to.equal(-1);
           });
 
           it('should return the not decremented property', () => {
@@ -2427,7 +2592,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
             const output = buildRun(code);
 
-            expect(output).to.eq(0);
+            expect(output).to.equal(0);
           });
         });
 
@@ -2441,7 +2606,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
             const output = buildRun(code);
 
-            expect(output).to.eq(-1);
+            expect(output).to.equal(-1);
           });
 
           it('should return the decremented property', () => {
@@ -2452,7 +2617,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
             const output = buildRun(code);
 
-            expect(output).to.eq(-1);
+            expect(output).to.equal(-1);
           });
         });
       });
@@ -2486,7 +2651,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
             const output = buildRun(code);
 
-            expect(output).to.eq(VALUE + 1);
+            expect(output).to.equal(VALUE + 1);
           });
 
           it('should return the property plus 1', () => {
@@ -2497,7 +2662,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
             const output = buildRun(code);
 
-            expect(output).to.eq(VALUE + 1);
+            expect(output).to.equal(VALUE + 1);
           });
         });
       });
@@ -2513,7 +2678,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
             const output = buildRun(code);
 
-            expect(output).to.eq(VALUE - 1);
+            expect(output).to.equal(VALUE - 1);
           });
 
           it('should return the property minus 1', () => {
@@ -2524,7 +2689,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
             const output = buildRun(code);
 
-            expect(output).to.eq(VALUE - 1);
+            expect(output).to.equal(VALUE - 1);
           });
         });
       });
@@ -2541,7 +2706,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
             const output = buildRun(code);
 
-            expect(output).to.eq(VALUE * n);
+            expect(output).to.equal(VALUE * n);
           });
 
           it('should return the property multiplied by 2', () => {
@@ -2553,7 +2718,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
             const output = buildRun(code);
 
-            expect(output).to.eq(VALUE * n);
+            expect(output).to.equal(VALUE * n);
           });
         });
       });
@@ -2570,7 +2735,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
             const output = buildRun(code);
 
-            expect(output).to.eq(VALUE / n);
+            expect(output).to.equal(VALUE / n);
           });
 
           it('should return the property divided by 2', () => {
@@ -2582,7 +2747,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
             const output = buildRun(code);
 
-            expect(output).to.eq(VALUE / n);
+            expect(output).to.equal(VALUE / n);
           });
         });
       });
@@ -2602,7 +2767,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
             const output = buildRun(code);
 
-            expect(output).to.eq(NEW_VALUE % n);
+            expect(output).to.equal(NEW_VALUE % n);
           });
 
           it('should return the property modulus 2', () => {
@@ -2616,7 +2781,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
             const output = buildRun(code);
 
-            expect(output).to.eq(NEW_VALUE % n);
+            expect(output).to.equal(NEW_VALUE % n);
           });
         });
       });
@@ -2639,7 +2804,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
             const output = buildRun(code);
 
-            expect(output).to.eq(VALUE & OTHER_VALUE); // eslint-disable-line no-bitwise
+            expect(output).to.equal(VALUE & OTHER_VALUE); // eslint-disable-line no-bitwise
           });
 
           it('should return 5', () => {
@@ -2650,7 +2815,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
             const output = buildRun(code);
 
-            expect(output).to.eq(VALUE & OTHER_VALUE); // eslint-disable-line no-bitwise
+            expect(output).to.equal(VALUE & OTHER_VALUE); // eslint-disable-line no-bitwise
           });
         });
       });
@@ -2673,7 +2838,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
             const output = buildRun(code);
 
-            expect(output).to.eq(VALUE | OTHER_VALUE); // eslint-disable-line no-bitwise
+            expect(output).to.equal(VALUE | OTHER_VALUE); // eslint-disable-line no-bitwise
           });
 
           it('should return 31', () => {
@@ -2684,7 +2849,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
             const output = buildRun(code);
 
-            expect(output).to.eq(VALUE | OTHER_VALUE); // eslint-disable-line no-bitwise
+            expect(output).to.equal(VALUE | OTHER_VALUE); // eslint-disable-line no-bitwise
           });
         });
       });
@@ -2707,7 +2872,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
             const output = buildRun(code);
 
-            expect(output).to.eq(VALUE ^ OTHER_VALUE); // eslint-disable-line no-bitwise
+            expect(output).to.equal(VALUE ^ OTHER_VALUE); // eslint-disable-line no-bitwise
           });
 
           it('should return 26', () => {
@@ -2718,7 +2883,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
             const output = buildRun(code);
 
-            expect(output).to.eq(VALUE ^ OTHER_VALUE); // eslint-disable-line no-bitwise
+            expect(output).to.equal(VALUE ^ OTHER_VALUE); // eslint-disable-line no-bitwise
           });
         });
       });
@@ -2738,7 +2903,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
             const output = buildRun(code);
 
-            expect(output).to.eq(VALUE << 1); // eslint-disable-line no-bitwise
+            expect(output).to.equal(VALUE << 1); // eslint-disable-line no-bitwise
           });
 
           it('should return 40', () => {
@@ -2749,7 +2914,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
             const output = buildRun(code);
 
-            expect(output).to.eq(VALUE << 1); // eslint-disable-line no-bitwise
+            expect(output).to.equal(VALUE << 1); // eslint-disable-line no-bitwise
           });
         });
       });
@@ -2769,7 +2934,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
             const output = buildRun(code);
 
-            expect(output).to.eq(VALUE >>> 1); // eslint-disable-line no-bitwise
+            expect(output).to.equal(VALUE >>> 1); // eslint-disable-line no-bitwise
           });
 
           it('should return 2147483643', () => {
@@ -2780,7 +2945,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
             const output = buildRun(code);
 
-            expect(output).to.eq(VALUE >>> 1); // eslint-disable-line no-bitwise
+            expect(output).to.equal(VALUE >>> 1); // eslint-disable-line no-bitwise
           });
         });
       });
@@ -2798,7 +2963,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
             const output = buildRun(code);
 
-            expect(output).to.eq(1);
+            expect(output).to.equal(1);
           });
 
           it('should return the not incremented property', () => {
@@ -2809,7 +2974,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
             const output = buildRun(code);
 
-            expect(output).to.eq(0);
+            expect(output).to.equal(0);
           });
         });
 
@@ -2823,7 +2988,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
             const output = buildRun(code);
 
-            expect(output).to.eq(1);
+            expect(output).to.equal(1);
           });
 
           it('should return the incremented property', () => {
@@ -2834,7 +2999,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
             const output = buildRun(code);
 
-            expect(output).to.eq(1);
+            expect(output).to.equal(1);
           });
         });
       });
@@ -2850,7 +3015,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
             const output = buildRun(code);
 
-            expect(output).to.eq(-1);
+            expect(output).to.equal(-1);
           });
 
           it('should return the not decremented property', () => {
@@ -2861,7 +3026,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
             const output = buildRun(code);
 
-            expect(output).to.eq(0);
+            expect(output).to.equal(0);
           });
         });
 
@@ -2875,7 +3040,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
             const output = buildRun(code);
 
-            expect(output).to.eq(-1);
+            expect(output).to.equal(-1);
           });
 
           it('should return the decremented property', () => {
@@ -2886,7 +3051,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
             const output = buildRun(code);
 
-            expect(output).to.eq(-1);
+            expect(output).to.equal(-1);
           });
         });
       });
@@ -2960,7 +3125,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
         const output = buildRun(code);
 
-        expect(output).to.eq(VALUE);
+        expect(output).to.equal(VALUE);
       });
 
       it('should return the return value of the deleteProperty function', () => {
@@ -2975,7 +3140,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
         const output = buildRun(code);
 
-        expect(output).to.eq(true);
+        expect(output).to.equal(true);
       });
 
       context('when the deleteProperty handler does nothing', () => {
@@ -2988,7 +3153,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
           const output = buildRun(code);
 
-          expect(output).to.eq(VALUE);
+          expect(output).to.equal(VALUE);
         });
       });
     });
@@ -3090,7 +3255,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
           const output = buildRun(code);
 
-          expect(output).to.eq(true);
+          expect(output).to.equal(true);
         });
       });
     });
