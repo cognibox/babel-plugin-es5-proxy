@@ -4,10 +4,12 @@ const babel = require('@babel/core');
 const thisModifierFunctions = ['apply', 'bind', 'call'];
 
 let evalName,
+    globalCallerName,
     globalDeleterName,
     globalGetterName,
     globalHasName,
     globalInstanceofName,
+    globalMemberCallerName,
     globalSetterName,
     inObjectName,
     isProxyName,
@@ -17,11 +19,14 @@ let evalName,
 function addRuntimeToFile(path) {
   const runtime = fs.readFileSync(require.resolve('./runtime.js'))
     .toString()
+    .replace(/nativePatchCalled/g, variableName('native_patch_called'))
+    .replace(/globalCaller/g, globalCallerName)
     .replace(/globalDeleter/g, globalDeleterName)
     .replace(/globalGetter/g, globalGetterName)
     .replace(/globalHas/g, globalHasName)
-    .replace(/globalSetter/g, globalSetterName)
     .replace(/globalInstanceof/g, globalInstanceofName)
+    .replace(/globalMemberCaller/g, globalMemberCallerName)
+    .replace(/globalSetter/g, globalSetterName)
     .replace(/inObject/g, inObjectName)
     .replace(/isProxy/g, isProxyName)
     .replace(/objectTarget/g, objectTargetName)
@@ -56,10 +61,12 @@ function setVariableNames() {
   if (evalName) return;
 
   evalName = variableName('temp_eval');
+  globalCallerName = variableName('global_caller');
   globalDeleterName = variableName('global_deleter');
   globalGetterName = variableName('global_getter');
   globalHasName = variableName('global_has');
   globalInstanceofName = variableName('global_instanceof');
+  globalMemberCallerName = variableName('global_member_caller');
   globalSetterName = variableName('global_setter');
   inObjectName = variableName('in_object');
   isProxyName = variableName('is_proxy');
@@ -146,9 +153,11 @@ module.exports = ({ types } = {}, options = {}) => {
       }
     },
     CallExpression(path) {
-      if (path.node.callee.name === globalGetterName || path.node.callee.name === globalSetterName || path.node.callee.name === 'globalCaller' || path.node.callee.name === evalName || path.node.callee.name === globalDeleterName || path.node.callee.name === globalHasName || path.node.callee.name === 'globalMemberCaller') return;
+      const nodeName = path.node.callee.name;
 
-      if (path.node.callee.name === 'eval') {
+      if (nodeName && nodeName.startsWith('__$') && nodeName.endsWith('$__')) return;
+
+      if (nodeName === 'eval') {
         path.replaceWith(
           types.callExpression(
             types.identifier(evalName),
@@ -171,7 +180,7 @@ module.exports = ({ types } = {}, options = {}) => {
       if (path.node.callee.type === 'MemberExpression') {
         path.replaceWith(
           types.callExpression(
-            types.identifier('globalMemberCaller'),
+            types.identifier(globalMemberCallerName),
             [
               path.node.callee.object,
               computeProperty(path.node.callee.property, path.node.callee),
@@ -184,7 +193,7 @@ module.exports = ({ types } = {}, options = {}) => {
       } else {
         path.replaceWith(
           types.callExpression(
-            types.identifier('globalCaller'),
+            types.identifier(globalCallerName),
             [
               path.node.callee,
               types.identifier('undefined'),

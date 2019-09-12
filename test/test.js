@@ -3,9 +3,2286 @@ const babel = require('@babel/core');
 
 let VALUE;
 
+function randomNumber() {
+  const max = 100;
+  return Math.round(Math.random() * max);
+}
+
 describe('babel-plugin-es5-proxy @medium', () => {
   beforeEach(() => {
-    VALUE = Math.random();
+    VALUE = randomNumber();
+  });
+
+  describe('native mocked functions', () => {
+    context('Object', () => {
+      context('Object.create', () => {
+        context('with proxy', () => {
+          it('should work', () => {
+            const modifier = 3;
+            const code = `
+              var mainObject = { a: ${VALUE} };
+              var mainProxy = new Proxy(mainObject, {
+                get: function(target, property) {
+                  return target[property] * ${modifier};
+                }
+              });
+              var descriptor = {
+                foo: {
+                  writable: true,
+                  configurable: true,
+                  enumerable: true,
+                  value: ${VALUE}
+                }
+              };
+              var descProxy = new Proxy(descriptor, {
+                get: function(target, property) {
+                  var desc = target[property];
+                  return {
+                    writable: desc.writable,
+                    configurable: desc.configurable,
+                    enumerable: desc.enumerable,
+                    value: desc.value + ${modifier}
+                  };
+                }
+              });
+
+              var newObject = Object.create(mainProxy, descProxy);
+
+              newObject.a + newObject.foo;
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.equal((VALUE * modifier) + (VALUE + modifier));
+          });
+        });
+
+        context('without proxy', () => {
+          it('should work', () => {
+            const fooValue = randomNumber();
+            const code = `
+              var mainObject = { a: ${VALUE} };
+              var descriptor = {
+                foo: {
+                  writable: true,
+                  configurable: true,
+                  enumerable: true,
+                  value: ${fooValue}
+                }
+              };
+
+              var newObject = Object.create(mainObject, descriptor);
+
+              newObject.a + newObject.foo;
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.equal(VALUE + fooValue);
+          });
+        });
+      });
+
+      context('Object.defineProperties', () => {
+        context('with proxy', () => {
+          it('should add properties to target', () => {
+            const multiplier = 4;
+            const code = `
+              var target = { value: ${VALUE} };
+              var proxy = new Proxy(target, {});
+              Object.defineProperties(proxy, {
+                v: {
+                  enumerable: true,
+                  get: function() { return this; }
+                },
+                vv: {
+                  enumerable: true,
+                  get: function() { return ${multiplier}; }
+                }
+              });
+
+              (proxy.v.value * proxy.vv) == (target.v.value * target.vv) && (proxy.v.value * proxy.vv) == (${VALUE} * ${multiplier});
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.be.true;
+          });
+
+          context('when argument is a proxy', () => {
+            it('should work', () => {
+              const multiplier = 4;
+              const code = `
+                var target = { value: ${VALUE} };
+
+                var v = {
+                  enumerable: undefined,
+                  get: undefined
+                };
+                var vProxy = new Proxy(v, {
+                  get: function(t, p) {
+                    if (p === 'enumerable') return true;
+                    if (p === 'get') return function() { return this; };
+
+                    return t[p];
+                  }
+                });
+
+                var vv = {
+                  enumerable: undefined,
+                  get: undefined
+                };
+                var vvProxy = new Proxy(v, {
+                  get: function(t, p) {
+                    if (p === 'enumerable') return true;
+                    if (p === 'get') return function() { return ${multiplier}; };
+
+                    return t[p];
+                  }
+                });
+
+                var handler = {
+                  v: {},
+                  vv: {}
+                };
+                var handlerProxy = new Proxy(handler, {
+                  get: function(t, p) {
+                    if (p === 'v') return vProxy;
+                    if (p === 'vv') return vvProxy;
+
+                    return t[p];
+                  }
+                });
+
+                Object.defineProperties(target, handlerProxy);
+
+                (target.v.value * target.vv) == (${VALUE} * ${multiplier});
+              `;
+
+              const output = buildRun(code);
+
+              expect(output).to.be.true;
+            });
+          });
+        });
+
+        context('without proxy', () => {
+          it('should add properties to target', () => {
+            const multiplier = 4;
+            const code = `
+              var target = { value: ${VALUE} };
+              Object.defineProperties(target, {
+                v: {
+                  enumerable: true,
+                  get: function() { return this; }
+                },
+                vv: {
+                  enumerable: true,
+                  get: function() { return ${multiplier}; }
+                }
+              });
+
+              (target.v.value * target.vv) == (${VALUE} * ${multiplier});
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.be.true;
+          });
+        });
+      });
+
+      context('Object.defineProperty', () => {
+        context('with proxies', () => {
+          it('should add property to target', () => {
+            const code = `
+              var target = {};
+              var proxy = new Proxy(target, {});
+              Object.defineProperty(proxy, 'metaine', {
+                enumerable: true,
+                get() {
+                  return ${VALUE};
+                }
+              });
+
+              target.metaine;
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.equal(VALUE);
+          });
+
+          it('should bind this to the right this', () => {
+            const code = `
+              var target = { metaine: ${VALUE} };
+              var proxy = new Proxy(target, {});
+              Object.defineProperty(proxy, 'self', {
+                enumerable: true,
+                get() {
+                  return this;
+                }
+              });
+              var proxy2 = new Proxy(proxy, {});
+
+              proxy.self === proxy && target.self === target && proxy2.self === proxy2;
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.be.true;
+          });
+
+          context('when argument is a proxy', () => {
+            it('should work', () => {
+              const code = `
+                var target = { value: ${VALUE} };
+
+                var v = {
+                  enumerable: undefined,
+                  get: undefined
+                };
+                var vProxy = new Proxy(v, {
+                  get: function(t, p) {
+                    if (p === 'enumerable') return true;
+                    if (p === 'get') return function() { return this; };
+
+                    return t[p];
+                  }
+                });
+
+                Object.defineProperty(target, 'self', vProxy);
+
+                target.self === target;
+              `;
+
+              const output = buildRun(code);
+
+              expect(output).to.be.true;
+            });
+          });
+        });
+
+        context('without proxies', () => {
+          it('should work', () => {
+            const multiplier = 3;
+            const code = `
+              var obj = { multiplier: ${multiplier} };
+              Object.defineProperty(obj, 'value', {
+                enumerable: true,
+                get: function() {
+                  return this.multiplier * ${VALUE};
+                }
+              });
+
+              obj.value;
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.equal(VALUE * multiplier);
+          });
+        });
+      });
+
+      context('Object.freeze', () => {
+        context('with proxy', () => {
+          it('should freeze the target', () => {
+            const code = `
+              var obj = {};
+              var proxy = new Proxy(obj, {});
+              Object.freeze(proxy);
+
+              obj.value = ${VALUE};
+
+              obj.value === undefined && Object.isFrozen(proxy);
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.be.true;
+          });
+        });
+
+        context('without proxy', () => {
+          it('should freeze the target', () => {
+            const code = `
+              var obj = {};
+              Object.freeze(obj);
+
+              obj.value = ${VALUE};
+              obj.value;
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.be.undefined;
+          });
+        });
+      });
+
+      context('Object.getOwnPropertyDescriptor', () => {
+        context('with proxy', () => {
+          it('should return target descriptor', () => {
+            const code = `
+              var target = { value: ${VALUE} };
+              var proxy = new Proxy(target, {});
+              Object.getOwnPropertyDescriptor(proxy, 'value');
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.deep.equal({
+              value: VALUE,
+              enumerable: true,
+              configurable: true,
+              writable: true,
+            });
+          });
+        });
+
+        context('without proxy', () => {
+          it('should return target descriptor', () => {
+            const code = `
+              var target = { value: ${VALUE} };
+              Object.getOwnPropertyDescriptor(target, 'value');
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.deep.equal({
+              value: VALUE,
+              enumerable: true,
+              configurable: true,
+              writable: true,
+            });
+          });
+        });
+      });
+
+      context('Object.getOwnPropertyNames', () => {
+        context('with proxy', () => {
+          it('should return Object.getOwnPropertyNames(target)', () => {
+            const otherValue = randomNumber();
+            const code = `
+              var obj = { value: ${VALUE} };
+              Object.defineProperty(obj, 'other', {
+                enumerable: true,
+                writable: true,
+                configurable: true,
+                value: ${otherValue}
+              });
+
+              var proxy = new Proxy(obj, {});
+
+              Object.getOwnPropertyNames(proxy);
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.deep.equal(['value', 'other']);
+          });
+        });
+
+        context('without proxy', () => {
+          it('should work', () => {
+            const otherValue = randomNumber();
+            const code = `
+              var obj = { value: ${VALUE} };
+              Object.defineProperty(obj, 'other', {
+                enumerable: true,
+                writable: true,
+                configurable: true,
+                value: ${otherValue}
+              });
+
+              Object.getOwnPropertyNames(obj);
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.deep.equal(['value', 'other']);
+          });
+        });
+      });
+
+      context('Object.getPrototypeOf', () => {
+        context('with proxy', () => {
+          it('should use it on target', () => {
+            const code = `
+              var parentObj = {}
+              var obj = Object.create(parentObj);
+              var proxy = new Proxy(obj, {});
+
+              Object.getPrototypeOf(proxy) === parentObj;
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.be.true;
+          });
+        });
+
+        context('without proxy', () => {
+          it('should work', () => {
+            const code = `
+              var parentObj = {}
+              var obj = Object.create(parentObj);
+
+              Object.getPrototypeOf(obj) === parentObj;
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.be.true;
+          });
+        });
+      });
+
+      context('Object.isExtensible', () => {
+        context('with proxy', () => {
+          context('when not extensible', () => {
+            it('should return false', () => {
+              const code = `
+                var obj = {};
+                var proxy = new Proxy(obj, {});
+                Object.freeze(proxy);
+                Object.isExtensible(proxy);
+              `;
+
+              const output = buildRun(code);
+
+              expect(output).to.be.false;
+            });
+          });
+
+          context('when extensible', () => {
+            it('should return true', () => {
+              const code = `
+                var obj = {};
+                var proxy = new Proxy(obj, {});
+                Object.isExtensible(proxy);
+              `;
+
+              const output = buildRun(code);
+
+              expect(output).to.be.true;
+            });
+          });
+        });
+
+        context('without proxy', () => {
+          context('when not extensible', () => {
+            it('should return false', () => {
+              const code = `
+                var obj = {};
+                Object.freeze(obj);
+                Object.isExtensible(obj);
+              `;
+
+              const output = buildRun(code);
+
+              expect(output).to.be.false;
+            });
+          });
+
+          context('when extensible', () => {
+            it('should return true', () => {
+              const code = `
+                var obj = {};
+                Object.isExtensible(obj);
+              `;
+
+              const output = buildRun(code);
+
+              expect(output).to.be.true;
+            });
+          });
+        });
+      });
+
+      context('Object.isFrozen', () => {
+        context('with proxy', () => {
+          context('when not frozen', () => {
+            it('should return true', () => {
+              const code = `
+                var obj = {};
+                var proxy = new Proxy(obj, {});
+                Object.freeze(proxy);
+                Object.isFrozen(proxy);
+              `;
+
+              const output = buildRun(code);
+
+              expect(output).to.be.true;
+            });
+          });
+
+          context('when frozen', () => {
+            it('should return false', () => {
+              const code = `
+                var obj = {};
+                var proxy = new Proxy(obj, {});
+                Object.isFrozen(proxy);
+              `;
+
+              const output = buildRun(code);
+
+              expect(output).to.be.false;
+            });
+          });
+        });
+
+        context('without proxy', () => {
+          context('when not frozen', () => {
+            it('should return true', () => {
+              const code = `
+                var obj = {};
+                Object.freeze(obj);
+                Object.isFrozen(obj);
+              `;
+
+              const output = buildRun(code);
+
+              expect(output).to.be.true;
+            });
+          });
+
+          context('when frozen', () => {
+            it('should return false', () => {
+              const code = `
+                var obj = {};
+                Object.isFrozen(obj);
+              `;
+
+              const output = buildRun(code);
+
+              expect(output).to.be.false;
+            });
+          });
+        });
+      });
+
+      context('Object.isSealed', () => {
+        context('with proxy', () => {
+          context('when sealed', () => {
+            it('should return true', () => {
+              const code = `
+                var obj = {};
+                var proxy = new Proxy(obj, {});
+                Object.seal(proxy);
+                Object.isSealed(proxy);
+              `;
+
+              const output = buildRun(code);
+
+              expect(output).to.be.true;
+            });
+          });
+
+          context('when not sealed', () => {
+            it('should return false', () => {
+              const code = `
+                var obj = {};
+                var proxy = new Proxy(obj, {});
+                Object.isSealed(proxy);
+              `;
+
+              const output = buildRun(code);
+
+              expect(output).to.be.false;
+            });
+          });
+        });
+
+        context('without proxy', () => {
+          context('when sealed', () => {
+            it('should return true', () => {
+              const code = `
+                var obj = {};
+                Object.seal(obj);
+                Object.isSealed(obj);
+              `;
+
+              const output = buildRun(code);
+
+              expect(output).to.be.true;
+            });
+          });
+
+          context('when not sealed', () => {
+            it('should return false', () => {
+              const code = `
+                var obj = {};
+                Object.isSealed(obj);
+              `;
+
+              const output = buildRun(code);
+
+              expect(output).to.be.false;
+            });
+          });
+        });
+      });
+
+      context('Object.keys', () => {
+        context('with proxy', () => {
+          it('should return target keys', () => {
+            const code = `
+              var obj = { aKey: 'aValue' };
+              var proxy = new Proxy(obj, {});
+              Object.keys(proxy);
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.deep.equal(['aKey']);
+          });
+        });
+
+        context('without proxy', () => {
+          it('should return target keys', () => {
+            const code = `
+              var obj = { aKey: 'aValue' };
+              Object.keys(obj);
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.deep.equal(['aKey']);
+          });
+        });
+      });
+
+      context('Object.preventExtensions', () => {
+        context('with proxy', () => {
+          it('should apply on target', () => {
+            const code = `
+              var obj = { a: 'a' };
+              var proxy = new Proxy(obj, {});
+              Object.preventExtensions(proxy);
+              obj.b = 5;
+              obj.b;
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.be.undefined;
+          });
+        });
+
+        context('without proxy', () => {
+          it('should work', () => {
+            const code = `
+              var obj = { a: 'a' };
+              Object.preventExtensions(obj);
+              obj.b = 5;
+              obj.b;
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.be.undefined;
+          });
+        });
+      });
+
+      context('Object.seal', () => {
+        context('with proxy', () => {
+          it('should seal the target', () => {
+            const code = `
+              var obj = { a: ${VALUE} };
+              var proxy = new Proxy(obj, {});
+              Object.seal(proxy);
+
+              delete obj.a;
+              obj.a;
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.equal(VALUE);
+          });
+        });
+
+        context('without proxy', () => {
+          it('should seal the obj', () => {
+            const code = `
+              var obj = { a: ${VALUE} };
+              Object.seal(obj);
+
+              delete obj.a;
+              obj.a;
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.equal(VALUE);
+          });
+        });
+      });
+
+      context('Object.setPrototypeOf', () => {
+        context('with proxy', () => {
+          it('should set prototype to target', () => {
+            const code = `
+              var obj = { a: ${VALUE} };
+              var proxy = new Proxy(obj, {});
+              var prototype = {};
+              Object.setPrototypeOf(proxy, prototype);
+
+              obj.__proto__ === prototype;
+            `;
+
+            const output = build(code).code;
+
+            expect(() => {
+              eval(output); //eslint-disable-line no-eval
+            }).to.throw('[babel-plugin-es5-proxy] \'Object.setPrototypeOf\' not implemented with proxy as arguments');
+          });
+        });
+
+        context('without proxy', () => {
+          it('should set prototype to obj', () => {
+            const code = `
+              var obj = { a: ${VALUE} };
+              var prototype = {};
+              Object.setPrototypeOf(obj, prototype);
+
+              obj.__proto__ === prototype;
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.be.true;
+          });
+        });
+      });
+    });
+
+    context('Object.prototype', () => {
+      context('Object.prototype.hasOwnProperty', () => {
+        context('with proxy', () => {
+          context('when object has property', () => {
+            it('should return true', () => {
+              const code = `
+                var obj = { a: ${VALUE} };
+                var proxy = new Proxy(obj, {});
+                proxy.hasOwnProperty('a');
+              `;
+
+              const output = buildRun(code);
+
+              expect(output).to.be.true;
+            });
+          });
+
+          context('when object does not have property', () => {
+            it('should return false', () => {
+              const code = `
+                var obj = { a: ${VALUE} };
+                var proxy = new Proxy(obj, {});
+                proxy.hasOwnProperty('b');
+              `;
+
+              const output = buildRun(code);
+
+              expect(output).to.be.false;
+            });
+          });
+        });
+
+        context('without proxy', () => {
+          context('when object has property', () => {
+            it('should return true', () => {
+              const code = `
+                var obj = { a: ${VALUE} };
+                obj.hasOwnProperty('a');
+              `;
+
+              const output = buildRun(code);
+
+              expect(output).to.be.true;
+            });
+          });
+
+          context('when object does not have property', () => {
+            it('should return false', () => {
+              const code = `
+                var obj = { a: ${VALUE} };
+                obj.hasOwnProperty('b');
+              `;
+
+              const output = buildRun(code);
+
+              expect(output).to.be.false;
+            });
+          });
+        });
+      });
+
+      context('Object.prototype.propertyIsEnumerable', () => {
+        context('with proxy', () => {
+          context('when is enumerable', () => {
+            it('should return true', () => {
+              const code = `
+                var obj = {};
+                Object.defineProperty(obj, 'a', {
+                  enumerable: true
+                });
+                var proxy = new Proxy(obj, {});
+                proxy.propertyIsEnumerable('a');
+              `;
+
+              const output = buildRun(code);
+
+              expect(output).to.be.true;
+            });
+          });
+
+          context('when is not enumerable', () => {
+            it('should return false', () => {
+              const code = `
+                var obj = {};
+                Object.defineProperty(obj, 'a', {
+                  enumerable: false
+                });
+                var proxy = new Proxy(obj, {});
+                proxy.propertyIsEnumerable('a');
+              `;
+
+              const output = buildRun(code);
+
+              expect(output).to.be.false;
+            });
+          });
+        });
+
+        context('without proxy', () => {
+          context('when is enumerable', () => {
+            it('should return true', () => {
+              const code = `
+                var obj = {};
+                Object.defineProperty(obj, 'a', {
+                  enumerable: true
+                });
+                obj.propertyIsEnumerable('a');
+              `;
+
+              const output = buildRun(code);
+
+              expect(output).to.be.true;
+            });
+          });
+
+          context('when is not enumerable', () => {
+            it('should return false', () => {
+              const code = `
+                var obj = {};
+                Object.defineProperty(obj, 'a', {
+                  enumerable: false
+                });
+                obj.propertyIsEnumerable('a');
+              `;
+
+              const output = buildRun(code);
+
+              expect(output).to.be.false;
+            });
+          });
+        });
+      });
+
+      context('Object.prototype.isPrototypeOf', () => {
+        context('with proxy', () => {
+          context('when is prototype of', () => {
+            context('when obj is proxy', () => {
+              it('should return false', () => {
+                const code = `
+                  var obj = {};
+                  var newObject = Object.create(obj);
+                  var proxy = new Proxy(obj, {});
+                  Object.prototype.isPrototypeOf.call(proxy, newObject);
+                `;
+
+                const output = buildRun(code);
+
+                expect(output).to.be.false;
+              });
+            });
+
+            context('when argument is proxy', () => {
+              it('should return true', () => {
+                const code = `
+                  var obj = {};
+                  var newObject = Object.create(obj);
+                  var proxy = new Proxy(newObject, {});
+                  Object.prototype.isPrototypeOf.call(obj, proxy);
+                `;
+
+                const output = buildRun(code);
+
+                expect(output).to.be.true;
+              });
+            });
+          });
+
+          context('when is not prototype of', () => {
+            it('should return false', () => {
+              const code = `
+                var obj = {};
+                var newObject = Object.create({});
+                obj.isPrototypeOf(newObject);
+              `;
+
+              const output = buildRun(code);
+
+              expect(output).to.be.false;
+            });
+          });
+        });
+
+        context('without proxy', () => {
+          context('when is prototype of', () => {
+            it('should return true', () => {
+              const code = `
+                var obj = {};
+                var newObject = Object.create(obj);
+                obj.isPrototypeOf(newObject);
+              `;
+
+              const output = buildRun(code);
+
+              expect(output).to.be.true;
+            });
+          });
+
+          context('when is not prototype of', () => {
+            it('should return false', () => {
+              const code = `
+                var obj = {};
+                var newObject = Object.create({});
+                obj.isPrototypeOf(newObject);
+              `;
+
+              const output = buildRun(code);
+
+              expect(output).to.be.false;
+            });
+          });
+        });
+      });
+
+      context('Object.prototype.toLocaleString', () => {
+        context('with proxy', () => {
+          it('should return target.toLocaleString', () => {
+            const code = `
+              var obj = [];
+              var proxy = new Proxy(obj, {});
+              Object.prototype.toLocaleString.call(proxy);
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.equal('');
+          });
+        });
+
+        context('without proxy', () => {
+          it('should work', () => {
+            const code = `
+              var obj = { a: ${VALUE} };
+              obj.toLocaleString();
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.equal('[object Object]');
+          });
+        });
+      });
+
+      context('Object.prototype.toString', () => {
+        context('with proxy', () => {
+          it('should return target.toString', () => {
+            const code = `
+              var obj = [];
+              var proxy = new Proxy(obj, {});
+              Object.prototype.toString.call(proxy);
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.equal('[object Array]');
+          });
+        });
+
+        context('without proxy', () => {
+          it('should work', () => {
+            const code = `
+              var obj = { a: ${VALUE} };
+              obj.toString();
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.equal('[object Object]');
+          });
+        });
+      });
+
+      context('Object.prototype.__defineGetter__', () => {
+        context('with proxy', () => {
+          it('should define on target', () => {
+            const code = `
+              var obj = {};
+              var proxy = new Proxy(obj, {});
+              Object.prototype.__defineGetter__.call(proxy, 'a', function() { return ${VALUE}; });
+              obj.a;
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.equal(VALUE);
+          });
+        });
+
+        context('without proxy', () => {
+          it('should work', () => {
+            const code = `
+              var obj = {};
+              Object.prototype.__defineGetter__.call(obj, 'a', function() { return ${VALUE}; });
+              obj.a;
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.equal(VALUE);
+          });
+        });
+      });
+
+      context('Object.prototype.__defineSetter__', () => {
+        context('with proxy', () => {
+          it('should define on target', () => {
+            const code = `
+              var obj = {};
+              var proxy = new Proxy(obj, {});
+              var mem = 4;
+              Object.prototype.__defineSetter__.call(proxy, 'a', function() { mem = ${VALUE}; return true; });
+              obj.a = 3;
+              mem;
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.equal(VALUE);
+          });
+        });
+
+        context('without proxy', () => {
+          it('should work', () => {
+            const code = `
+              var obj = {};
+              var mem = 4;
+              Object.prototype.__defineSetter__.call(obj, 'a', function() { mem = ${VALUE}; return true; });
+              obj.a = 3;
+              mem;
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.equal(VALUE);
+          });
+        });
+      });
+
+      context('Object.prototype.__lookupGetter__', () => {
+        context('with proxy', () => {
+          it('should define on target', () => {
+            const code = `
+              var obj = {};
+              var proxy = new Proxy(obj, {});
+              var mem = 4;
+              var fn = function() { return ${VALUE}; };
+              Object.prototype.__defineGetter__.call(obj, 'a', fn);
+              Object.prototype.__lookupGetter__.call(proxy, 'a') === fn;
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.be.true;
+          });
+        });
+
+        context('without proxy', () => {
+          it('should work', () => {
+            const code = `
+              var obj = {};
+              var mem = 4;
+              var fn = function() { return ${VALUE}; };
+              Object.prototype.__defineGetter__.call(obj, 'a', fn);
+              Object.prototype.__lookupGetter__.call(obj, 'a') === fn;
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.be.true;
+          });
+        });
+      });
+
+      context('Object.prototype.__lookupSetter__', () => {
+        context('with proxy', () => {
+          it('should define on target', () => {
+            const code = `
+              var obj = {};
+              var proxy = new Proxy(obj, {});
+              var mem = 4;
+              var fn = function() { return true; };
+              Object.prototype.__defineSetter__.call(obj, 'a', fn);
+              Object.prototype.__lookupSetter__.call(proxy, 'a') === fn;
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.be.true;
+          });
+        });
+
+        context('without proxy', () => {
+          it('should work', () => {
+            const code = `
+              var obj = {};
+              var mem = 4;
+              var fn = function() { return true; };
+              Object.prototype.__defineSetter__.call(obj, 'a', fn);
+              Object.prototype.__lookupSetter__.call(obj, 'a') === fn;
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.be.true;
+          });
+        });
+      });
+    });
+
+    context('Array', () => {
+      context('Array.isArray', () => {
+        context('with proxy', () => {
+          context('when target is array', () => {
+            it('should return true', () => {
+              const code = `
+                var proxy = new Proxy([], {});
+                Array.isArray(proxy);
+              `;
+
+              const output = buildRun(code);
+
+              expect(output).to.be.true;
+            });
+          });
+
+          context('when target is not array', () => {
+            it('should return false', () => {
+              const code = `
+                var proxy = new Proxy({}, {});
+                Array.isArray(proxy);
+              `;
+
+              const output = buildRun(code);
+
+              expect(output).to.be.false;
+            });
+          });
+        });
+
+        context('without proxy', () => {
+          context('when is array', () => {
+            it('should return true', () => {
+              const code = `
+                Array.isArray([]);
+              `;
+
+              const output = buildRun(code);
+
+              expect(output).to.be.true;
+            });
+          });
+
+          context('when is not array', () => {
+            it('should return false', () => {
+              const code = `
+                Array.isArray({});
+              `;
+
+              const output = buildRun(code);
+
+              expect(output).to.be.false;
+            });
+          });
+        });
+      });
+    });
+
+    context('Array.prototype', () => {
+      context('Array.prototype.push', () => {
+        context('with proxy', () => {
+          it('should use target', () => {
+            const code = `
+              var obj = [];
+              var proxy = new Proxy(obj, {});
+
+              Array.prototype.push.call(proxy, ${VALUE});
+
+              obj;
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.deep.equal([VALUE]);
+          });
+        });
+
+        context('with proxy', () => {
+          it('should work', () => {
+            const code = `
+              var obj = [];
+
+              Array.prototype.push.call(obj, ${VALUE});
+
+              obj;
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.deep.equal([VALUE]);
+          });
+        });
+      });
+
+      context('Array.prototype.concat', () => {
+        context('with proxy', () => {
+          context('when this is a proxy', () => {
+            it('should use target', () => {
+              const code = `
+                var obj = ['no'];
+                var proxy = new Proxy(obj, {
+                  get: function(target, prop) {
+                    if (prop == '0') {
+                      return ${VALUE};
+                    }
+
+                    return target[prop];
+                  }
+                });
+
+                Array.prototype.concat.call(proxy, [${VALUE}]);
+              `;
+
+              const output = buildRun(code);
+
+              expect(output).to.deep.equal([VALUE, VALUE]);
+            });
+          });
+
+          context('when param is proxy', () => {
+            it('should work', () => {
+              const code = `
+                var obj = [];
+
+                var other = [-5]
+                var proxy = new Proxy(other, {
+                  get: function(t, p) {
+                    if (p == '0') return ${VALUE};
+
+                    return t[p];
+                  }
+                });
+
+                Array.prototype.concat.call(obj, proxy);
+              `;
+
+              const output = buildRun(code);
+
+              expect(output).to.deep.equal([VALUE]);
+            });
+          });
+        });
+
+        context('without proxy', () => {
+          it('should work', () => {
+            const code = `
+              var obj = [];
+
+              Array.prototype.concat.call(obj, [${VALUE}]);
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.deep.equal([VALUE]);
+          });
+        });
+      });
+
+      context('Array.prototype.join', () => {
+        context('with proxy', () => {
+          it('should work', () => {
+            const OTHER = randomNumber();
+            const MULTIPLIER = 3;
+            const code = `
+              var obj = [${VALUE}, ${OTHER}];
+              var proxy = new Proxy(obj, {
+                get(t, p) {
+                  var value = t[p];
+                  if (!isNaN(parseInt(p))) {
+                    value = value * ${MULTIPLIER};
+                  }
+                  return value;
+                }
+              });
+
+              Array.prototype.join.call(proxy, ', ');
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.equal(`${VALUE * MULTIPLIER}, ${OTHER * MULTIPLIER}`);
+          });
+        });
+
+        context('without proxy', () => {
+          it('should work', () => {
+            const OTHER = randomNumber();
+            const code = `
+              var obj = [${VALUE}, ${OTHER}];
+              Array.prototype.join.call(obj, ', ');
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.equal(`${VALUE}, ${OTHER}`);
+          });
+        });
+      });
+
+      context('Array.prototype.pop', () => {
+        context('with proxy', () => {
+          it('should work', () => {
+            const OTHER = randomNumber();
+            const MULTIPLIER = 3;
+            const code = `
+              var obj = [${VALUE}, ${OTHER}];
+              var proxy = new Proxy(obj, {
+                get(t, p) {
+                  var value = t[p];
+                  if (!isNaN(parseInt(p))) {
+                    value = value * ${MULTIPLIER};
+                  }
+                  return value;
+                }
+              });
+              Array.prototype.pop.call(proxy) === ${OTHER} * ${MULTIPLIER} && obj.length === 1
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.be.true;
+          });
+        });
+
+        context('without proxy', () => {
+          it('should work', () => {
+            const OTHER = randomNumber();
+            const code = `
+              var obj = [${VALUE}, ${OTHER}];
+              Array.prototype.pop.call(obj) === ${OTHER} && obj.length === 1
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.be.true;
+          });
+        });
+      });
+
+      context('Array.prototype.reverse', () => {
+        context('with proxy', () => {
+          it('should work', () => {
+            const OTHER = randomNumber();
+            const MIDDLE = randomNumber();
+            const MULTIPLIER = 3;
+            const ADDER = 5;
+            const code = `
+              var obj = [${VALUE}, ${MIDDLE}, ${OTHER}];
+              var proxy = new Proxy(obj, {
+                get: function(t, p) {
+                  var value = t[p];
+                  if (!isNaN(parseInt(p.toString()))) {
+                    value = value * ${MULTIPLIER};
+                  }
+                  return value;
+                },
+
+                set: function(t, p, v) {
+                  if (!isNaN(parseInt(p.toString()))) {
+                    v = v + ${ADDER};
+                  }
+
+                  t[p] = v;
+
+                  return true;
+                }
+              });
+              var callValue = Array.prototype.reverse.call(proxy);
+              callValue === proxy && obj.length === 3 && obj[0] === ${OTHER} * ${MULTIPLIER} + ${ADDER} && obj[1] === ${MIDDLE}
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.be.true;
+          });
+        });
+
+        context('without proxy', () => {
+          it('should work', () => {
+            const OTHER = randomNumber();
+            const code = `
+              var obj = [${VALUE}, ${OTHER}];
+              obj.reverse();
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.deep.equal([OTHER, VALUE]);
+          });
+        });
+      });
+
+      context('Array.prototype.shift', () => {
+        context('with proxy', () => {
+          it('should work', () => {
+            const OTHER = randomNumber();
+            const MULTIPLIER = 3;
+            const code = `
+              var obj = [${VALUE}, ${OTHER}];
+              var proxy = new Proxy(obj, {
+                get(t, p) {
+                  var value = t[p];
+                  if (!isNaN(parseInt(p))) {
+                    value = value * ${MULTIPLIER};
+                  }
+                  return value;
+                }
+              });
+              Array.prototype.shift.call(proxy) === ${VALUE} * ${MULTIPLIER} && obj.length === 1
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.be.true;
+          });
+        });
+
+        context('without proxy', () => {
+          it('should work', () => {
+            const OTHER = randomNumber();
+            const code = `
+              var obj = [${VALUE}, ${OTHER}];
+              Array.prototype.shift.call(obj) === ${VALUE} && obj.length === 1
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.be.true;
+          });
+        });
+      });
+
+      context('Array.prototype.slice', () => {
+        context('with proxy', () => {
+          it('should work', () => {
+            const FIRST = randomNumber();
+            const SECOND = randomNumber();
+            const THIRD = randomNumber();
+            const FOURTH = randomNumber();
+            const MULTIPLIER = 3;
+            const code = `
+              var obj = [${FIRST}, ${SECOND}, ${THIRD}, ${FOURTH}];
+              var proxy = new Proxy(obj, {
+                get(t, p) {
+                  var value = t[p];
+                  if (!isNaN(parseInt(p))) {
+                    value = value * ${MULTIPLIER};
+                  }
+                  return value;
+                }
+              });
+              var value = Array.prototype.slice.call(proxy, 1, 3);
+              value.length === 2 && value[0] === ${SECOND * MULTIPLIER} && value[1] === ${THIRD * MULTIPLIER};
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.be.true;
+          });
+        });
+
+        context('without proxy', () => {
+          it('should work', () => {
+            const FIRST = randomNumber();
+            const SECOND = randomNumber();
+            const THIRD = randomNumber();
+            const FOURTH = randomNumber();
+            const code = `
+              var obj = [${FIRST}, ${SECOND}, ${THIRD}, ${FOURTH}];
+              var value = Array.prototype.slice.call(obj, 1, 3);
+              value.length === 2 && value[0] === ${SECOND} && value[1] === ${THIRD};
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.be.true;
+          });
+        });
+      });
+
+      context('Array.prototype.sort', () => {
+        context('with proxy', () => {
+          xit('should work', () => {
+            const MULTIPLIER = 3;
+            const ADDER = 5;
+            const code = `
+              var obj = [3,2,1,4,5];
+              var proxy = new Proxy(obj, {
+                get: function(t, p) {
+                  var value = t[p];
+                  if (p == '1') {
+                    value = value * ${MULTIPLIER};
+                  }
+                  return value;
+                },
+
+                set: function(t, p, v) {
+                  if (p == '1') {
+                    v = v + ${ADDER};
+                  }
+
+                  t[p] = v;
+
+                  return true;
+                }
+              });
+              var value = Array.prototype.sort.call(proxy);
+              value === proxy && obj;
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.deep.equal([1, 8, 4, 5, 6]); // eslint-disable-line no-magic-numbers
+          });
+        });
+
+        context('without proxy', () => {
+          it('should work', () => {
+            const code = `
+              var obj = [3,2,1,4,5];
+              var value = Array.prototype.sort.call(obj);
+              value === obj && obj;
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.deep.equal([1, 2, 3, 4, 5]); // eslint-disable-line no-magic-numbers
+          });
+        });
+      });
+
+      context('Array.prototype.splice', () => {
+        context('with proxy', () => {
+          it('should work', () => {
+            const code = `
+              var months = ['Jan', 'March', 'April', 'June'];
+              var proxy = new Proxy(months, {
+                get: function(t, p) {
+                  var value = t[p];
+                  if (p !== 'length' && p !== 'constructor') {
+                    value = value + ' getted'
+                  }
+                  return value;
+                },
+
+                set: function(t, p, v) {
+                  t[p] = v;
+
+                  if (p !== 'length') {
+                    t[p] = v + ' setted';
+                  } else {
+                    t[p] = v;
+                  }
+
+                  return true;
+                }
+              });
+              Array.prototype.splice.call(proxy, 1, 0, 'Feb');
+              Array.prototype.splice.call(proxy, 4, 1, 'May');
+
+              months;
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.deep.equal(['Jan', 'Feb setted', 'March getted setted', 'April getted setted', 'May setted']);
+          });
+
+          context('when start is negative', () => {
+            it('should work', () => {
+              const code = `
+                var months = ['Jan', 'March', 'April', 'June'];
+                var proxy = new Proxy(months, {
+                  get: function(t, p) {
+                    var value = t[p];
+                    if (p !== 'length' && p !== 'constructor') {
+                      value = value + ' getted'
+                    }
+                    return value;
+                  },
+
+                  set: function(t, p, v) {
+                    t[p] = v;
+
+                    if (p !== 'length') {
+                      t[p] = v + ' setted';
+                    } else {
+                      t[p] = v;
+                    }
+
+                    return true;
+                  }
+                });
+
+                Array.prototype.splice.call(proxy, -2, 1, 'Error', 'May');
+
+                months;
+              `;
+
+              const output = buildRun(code);
+
+              expect(output).to.deep.equal(['Jan', 'March', 'Error setted', 'May setted', 'June getted setted']);
+            });
+          });
+        });
+
+        context('without proxy', () => {
+          it('should work', () => {
+            const code = `
+              var months = ['Jan', 'March', 'April', 'June'];
+              months.splice(1, 0, 'Feb');
+              months.splice(4, 1, 'May');
+              months;
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.deep.equal(['Jan', 'Feb', 'March', 'April', 'May']);
+          });
+        });
+      });
+
+      context('Array.prototype.toLocaleString', () => {
+        context('with proxy', () => {
+          it('should return target.toLocaleString', () => {
+            const OTHER = randomNumber();
+            const MULTIPLIER = 3;
+            const code = `
+              var obj = [${VALUE}, ${OTHER}];
+              var proxy = new Proxy(obj, {
+                get: function(t, p) {
+                  if (p == '0' || p == '1') return t[p] * ${MULTIPLIER};
+
+                  return t[p];
+                }
+              });
+              Array.prototype.toLocaleString.call(proxy);
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.equal(`${VALUE * MULTIPLIER},${OTHER * MULTIPLIER}`);
+          });
+        });
+
+        context('without proxy', () => {
+          it('should work', () => {
+            const OTHER = randomNumber();
+            const code = `
+              var obj = [${VALUE}, ${OTHER}];
+              Array.prototype.toLocaleString.call(obj);
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.equal(`${VALUE},${OTHER}`);
+          });
+        });
+      });
+
+      context('Array.prototype.toString', () => {
+        context('with proxy', () => {
+          it('should return target.toString', () => {
+            const OTHER = randomNumber();
+            const MULTIPLIER = 3;
+            const code = `
+              var obj = [${VALUE}, ${OTHER}];
+              var proxy = new Proxy(obj, {
+                get: function(t, p) {
+                  if (p == '0' || p == '1') return t[p] * ${MULTIPLIER};
+
+                  return t[p];
+                }
+              });
+              Array.prototype.toString.call(proxy);
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.equal(`${VALUE * MULTIPLIER},${OTHER * MULTIPLIER}`);
+          });
+        });
+
+        context('without proxy', () => {
+          it('should work', () => {
+            const OTHER = randomNumber();
+            const code = `
+              var obj = [${VALUE}, ${OTHER}];
+              Array.prototype.toString.call(obj);
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.equal(`${VALUE},${OTHER}`);
+          });
+        });
+      });
+
+      context('Array.prototype.unshift', () => {
+        context('with proxy', () => {
+          it('should use target', () => {
+            const code = `
+              var obj = [];
+              var proxy = new Proxy(obj, {});
+
+              Array.prototype.unshift.call(proxy, ${VALUE});
+
+              obj;
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.deep.equal([VALUE]);
+          });
+        });
+
+        context('with proxy', () => {
+          it('should work', () => {
+            const code = `
+              var obj = [];
+
+              Array.prototype.unshift.call(obj, ${VALUE});
+
+              obj;
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.deep.equal([VALUE]);
+          });
+        });
+      });
+
+      context('Array.prototype.indexOf', () => {
+        context('with proxy', () => {
+          it('should work', () => {
+            const code = `
+              var array = [1, 2, 3, 4, 1];
+              var proxy = new Proxy(array, { get(target, property) {
+                if (property === 'length' || property === 'constructor') return target[property];
+                return target[property] + 1;
+              }});
+              Array.prototype.indexOf.call(proxy, 2);
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.equal(0); // eslint-disable-line no-magic-numbers
+          });
+        });
+
+        context('without proxy', () => {
+          it('should work', () => {
+            const code = `
+              var array = [1, 2, 3, 4, 1];
+              Array.prototype.indexOf.call(array, 1);
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.equal(0); // eslint-disable-line no-magic-numbers
+          });
+        });
+      });
+
+      context('Array.prototype.every', () => {
+        context('with proxy', () => {
+          context('when the array contains only truthy values', () => {
+            it('should return true', () => {
+              const code = `
+                var arr = [3, 3, 3, 3];
+                var proxy = new Proxy(arr, { get(target, property) {
+                  if (property === 'length') return target[property];
+                  return target[property] + 1;
+                } });
+                Array.prototype.every.call(proxy, (elem) => elem === 4);
+              `;
+
+              const output = buildRun(code);
+
+              expect(output).to.be.true;
+            });
+          });
+
+          context('when the array contains a falsey value', () => {
+            it('should return false', () => {
+              const code = `
+                var arr = [3, 3, 3, false];
+                var proxy = new Proxy(arr, { get(target, property) {
+                  if (property === 'length') return target[property];
+                  return target[property] + 1;
+                } });
+                Array.prototype.every.call(proxy, (elem) => elem === 3);
+              `;
+
+              const output = buildRun(code);
+
+              expect(output).to.be.false;
+            });
+          });
+
+          context('without proxy', () => {
+            context('when the array contains only truthy value', () => {
+              it('should return true', () => {
+                const code = `
+                var arr = [3, 3, 3, 3];
+                Array.prototype.every.call(arr, (elem) => elem === 3);
+              `;
+
+                const output = buildRun(code);
+
+                expect(output).to.be.true;
+              });
+            });
+
+            context('when the array contains a falsey value', () => {
+              it('should return false', () => {
+                const code = `
+                var arr = [3, false, 3, 3];
+                Array.prototype.every.call(arr, (elem) => elem === 3);
+              `;
+
+                const output = buildRun(code);
+
+                expect(output).to.be.false;
+              });
+            });
+          });
+        });
+      });
+
+      context('Array.prototype.filter', () => {
+        context('with proxy', () => {
+          context('when array element are proxies', () => {
+            it('should work', () => {
+              const code = `
+                var handler = {
+                  get: function(target, property) {
+                    if (property == 'value') return target[property] * 3;
+
+                    return target[property];
+                  }
+                };
+                var arr = [
+                  new Proxy({ value: 1 }, handler),
+                  new Proxy({ value: 2 }, handler),
+                  new Proxy({ value: 3 }, handler)
+                ];
+
+                Array.prototype.filter.call(arr, (elem) => elem.value > 3).length;
+              `;
+
+              const output = buildRun(code);
+
+              const expectedLength = 2;
+              expect(output).to.equal(expectedLength);
+            });
+          });
+
+          context('when array is a proxy', () => {
+            it('should work', () => {
+              const code = `
+                var arr = [1, 2, 3];
+                var proxy = new Proxy(arr, {
+                  get: function(target, property) {
+                    if (property === 'length' || property === 'constructor') return target[property];
+                    return target[property] * 3;
+                  }
+                });
+
+                Array.prototype.filter.call(proxy, (elem) => elem > 3).length;
+              `;
+
+              const output = buildRun(code);
+
+              const expectedLength = 2;
+              expect(output).to.equal(expectedLength);
+            });
+          });
+        });
+
+        context('without proxy', () => {
+          it('should work', () => {
+            const code = `
+              var arr = [{ value: 1 }, { value: 2 }, { value: 3 }];
+              Array.prototype.filter.call(arr, (elem) => elem.value > 1);
+            `;
+
+            const output = buildRun(code);
+
+            const expectedLength = 2;
+            expect(output.length).to.equal(expectedLength);
+          });
+        });
+      });
+
+      context('Array.prototype.forEach', () => {
+        context('with proxy', () => {
+          it('should work', () => {
+            const code = `
+              var rtn = [];
+              var that = new Proxy({multiplier: 1}, { get(target, property) { return target[property] * 2; }});
+              var array = [
+                new Proxy({ value: 1 }, { get(target, property) { if (property === 'value') return target[property] * 2; return target[property]; } }),
+                new Proxy({ value: 1 }, { get(target, property) { if (property === 'value') return target[property] * 2; return target[property]; } }),
+                new Proxy({ value: 1 }, { get(target, property) { if (property === 'value') return target[property] * 2; return target[property]; } }),
+                new Proxy({ value: 1 }, { get(target, property) { if (property === 'value') return target[property] * 2; return target[property]; } }),
+                new Proxy({ value: 1 }, { get(target, property) { if (property === 'value') return target[property] * 2; return target[property]; } }),
+              ];
+              var proxy = new Proxy(array, { get(target, property) {
+                if (property === 'length' || property === 'constructor') return target[property];
+                target[property].value += 1;
+                return target[property];
+              }})
+              Array.prototype.forEach.call(proxy, function (val) { rtn.push(val.value * this.multiplier); }, that)
+              rtn;
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.deep.equal([12, 12, 12, 12, 12]); // eslint-disable-line no-magic-numbers
+          });
+        });
+
+        context('without proxy', () => {
+          it('should work', () => {
+            const code = `
+              var rtn = [];
+              var array = [1, 1, 1, 1, 1];
+              array.forEach(function(val) { rtn.push(val * this.multiplier) }, { multiplier: 2 })
+              rtn;
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.deep.equal([2, 2, 2, 2, 2]); // eslint-disable-line no-magic-numbers
+          });
+        });
+      });
+
+      context('Array.prototype.lastIndexOf', () => {
+        context('with proxy', () => {
+          it('should work', () => {
+            const code = `
+              var array = [1, 2, 3, 4, 1];
+              var proxy = new Proxy(array, { get(target, property) {
+                if (property === 'length' || property === 'constructor') return target[property];
+                return target[property] + 1;
+              }})
+              Array.prototype.lastIndexOf.call(proxy, 2)
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.equal(4); // eslint-disable-line no-magic-numbers
+          });
+        });
+
+        context('without proxy', () => {
+          it('should work', () => {
+            const code = `
+              var array = [1, 2, 3, 4, 1];
+              Array.prototype.lastIndexOf.call(array, 1)
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.equal(4); // eslint-disable-line no-magic-numbers
+          });
+        });
+      });
+
+      context('Array.prototype.map', () => {
+        context('with proxy', () => {
+          it('should work', () => {
+            const code = `
+              var that = new Proxy({multiplier: 1}, { get(target, property) { return target[property] * 2; }});
+              var array = [
+                new Proxy({ value: 1 }, { get(target, property) { if (property === 'value') return target[property] * 2; return target[property]; } }),
+                new Proxy({ value: 1 }, { get(target, property) { if (property === 'value') return target[property] * 2; return target[property]; } }),
+                new Proxy({ value: 1 }, { get(target, property) { if (property === 'value') return target[property] * 2; return target[property]; } }),
+                new Proxy({ value: 1 }, { get(target, property) { if (property === 'value') return target[property] * 2; return target[property]; } }),
+                new Proxy({ value: 1 }, { get(target, property) { if (property === 'value') return target[property] * 2; return target[property]; } }),
+              ];
+              var proxy = new Proxy(array, { get(target, property) {
+                if (property === 'length' || property === 'constructor') return target[property];
+                target[property].value += 1;
+                return target[property];
+              }})
+              Array.prototype.map.call(proxy, function (val) { return this.multiplier * val.value }, that)
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.deep.equal([12, 12, 12, 12, 12]); // eslint-disable-line no-magic-numbers
+          });
+        });
+
+        context('without proxy', () => {
+          it('should work', () => {
+            const code = `
+              var array = [1, 1, 1, 1, 1];
+              array.map(function(val) { return val * this.multiplier; }, { multiplier: 2 })
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.deep.equal([2, 2, 2, 2, 2]); // eslint-disable-line no-magic-numbers
+          });
+        });
+      });
+
+      context('Array.prototype.reduce', () => {
+        context('with proxy', () => {
+          it('should work', () => {
+            const code = `
+              var array = [
+                new Proxy({ value: 1 }, { get(target, property) { if (property === 'value') return target[property] * 2; return target[property]; } }),
+                new Proxy({ value: 1 }, { get(target, property) { if (property === 'value') return target[property] * 2; return target[property]; } }),
+                new Proxy({ value: 1 }, { get(target, property) { if (property === 'value') return target[property] * 2; return target[property]; } }),
+                new Proxy({ value: 1 }, { get(target, property) { if (property === 'value') return target[property] * 2; return target[property]; } }),
+                new Proxy({ value: 1 }, { get(target, property) { if (property === 'value') return target[property] * 2; return target[property]; } }),
+              ];
+              var proxy = new Proxy(array, { get(target, property) {
+                if (property === 'length') return target[property];
+                target[property].value += 1;
+                return target[property];
+              }})
+              Array.prototype.reduce.call(proxy, (acc, val) => acc + val.value, 1)
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.equal(31); // eslint-disable-line no-magic-numbers
+          });
+        });
+
+        context('without proxy', () => {
+          it('should work', () => {
+            const code = `
+              var array = [1, 1, 1, 1, 1];
+              array.reduce((acc, val) => acc + val, 1)
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.equal(6); // eslint-disable-line no-magic-numbers
+          });
+        });
+      });
+
+      context('Array.prototype.reduceRight', () => {
+        context('with proxy', () => {
+          it('should work', () => {
+            const code = `
+              var array = [
+                new Proxy({ value: 1 }, { get(target, property) { if (property === 'value') return target[property] * 2; return target[property]; } }),
+                new Proxy({ value: 1 }, { get(target, property) { if (property === 'value') return target[property] * 2; return target[property]; } }),
+                new Proxy({ value: 1 }, { get(target, property) { if (property === 'value') return target[property] * 2; return target[property]; } }),
+                new Proxy({ value: 1 }, { get(target, property) { if (property === 'value') return target[property] * 2; return target[property]; } }),
+                new Proxy({ value: 1 }, { get(target, property) { if (property === 'value') return target[property] * 2; return target[property]; } }),
+              ];
+              var proxy = new Proxy(array, { get(target, property) {
+                if (property === 'length') return target[property];
+                target[property].value += 1;
+                return target[property];
+              }})
+              Array.prototype.reduceRight.call(proxy, (acc, val) => acc + val.value, 1)
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.equal(31); // eslint-disable-line no-magic-numbers
+          });
+        });
+
+        context('without proxy', () => {
+          it('should work', () => {
+            const code = `
+              var array = [1, 1, 1, 1, 1];
+              array.reduceRight((acc, val) => acc + val, 1)
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.equal(6); // eslint-disable-line no-magic-numbers
+          });
+        });
+      });
+
+      context('Array.prototype.some', () => {
+        context('with proxy', () => {
+          context('when the array contains a truthy value', () => {
+            it('should return true', () => {
+              const code = `
+                var arr = [false, false, 3, false];
+                var proxy = new Proxy(arr, { get(target, property) {
+                  if (property === 'length') return target[property];
+                  return target[property] + 1;
+                } });
+                Array.prototype.some.call(proxy, (elem) => elem === 4);
+              `;
+
+              const output = buildRun(code);
+
+              expect(output).to.be.true;
+            });
+          });
+
+          context('when the array does not contain a truthy value', () => {
+            it('should return false', () => {
+              const code = `
+                var arr = [false, false, 3, false];
+                var proxy = new Proxy(arr, { get(target, property) {
+                  if (property === 'length') return target[property];
+                  return target[property] + 1;
+                } });
+                Array.prototype.some.call(proxy, (elem) => elem === 3);
+              `;
+
+              const output = buildRun(code);
+
+              expect(output).to.be.false;
+            });
+          });
+        });
+
+        context('without proxy', () => {
+          context('when the array contains a truthy value', () => {
+            it('should return true', () => {
+              const code = `
+                var arr = [false, false, 3, false];
+                Array.prototype.some.call(arr, (elem) => elem === 3);
+              `;
+
+              const output = buildRun(code);
+
+              expect(output).to.be.true;
+            });
+          });
+
+          context('when the array does not contain a truthy value', () => {
+            it('should return false', () => {
+              const code = `
+                var arr = [false, false, 3, false];
+                Array.prototype.some.call(arr, (elem) => elem === 2);
+              `;
+
+              const output = buildRun(code);
+
+              expect(output).to.be.false;
+            });
+          });
+        });
+      });
+    });
+
+    context('JSON', () => {
+      context('JSON.stringify', () => {
+        context('with proxy', () => {
+          it('should work', () => {
+            const OTHER = randomNumber();
+            const code = `
+              var b = {
+                c: 0
+              }
+              var otherProxy = new Proxy(b, {
+                get: function(target, property) {
+                  if (property == 'c') return ${OTHER};
+                  return target[property];
+                }
+              });
+
+              var obj = {
+                a: 0,
+                b: otherProxy
+              }
+
+              var proxy = new Proxy(obj, {
+                get: function(target, property) {
+                  if (property == 'a') return ${VALUE};
+                  return target[property];
+                }
+              });
+
+              JSON.stringify(proxy);
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.equal(`{"a":${VALUE},"b":{"c":${OTHER}}}`);
+          });
+        });
+
+        context('without proxy', () => {
+          it('should work', () => {
+            const OTHER = randomNumber();
+            const code = `
+              var obj = {
+                a: ${VALUE},
+                b: {
+                  c: ${OTHER}
+                }
+              }
+
+              JSON.stringify(obj);
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.equal(`{"a":${VALUE},"b":{"c":${OTHER}}}`);
+          });
+        });
+      });
+    });
   });
 
   describe('labeled Statement', () => {
@@ -16,7 +2293,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
           function nbr() { return ${VALUE}; }
           var stuff = { nbr: nbr };
           mew:
-          for(var i = 0; i < stuff.nbr() * 2; i++) {
+          for(var i = 0; i <= stuff.nbr() * 2; i++) {
             index++;
             continue mew;
           }
@@ -25,7 +2302,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
         const output = buildRun(code);
 
-        expect(output).to.equal(Math.round(VALUE));
+        expect(output).to.equal(Math.round(VALUE * 2)); // eslint-disable-line no-magic-numbers
       });
     });
   });
@@ -83,28 +2360,6 @@ describe('babel-plugin-es5-proxy @medium', () => {
           expect(output[0]).to.equal(VALUE);
         });
       });
-
-      // context.only('when using a for of', () => {
-      //   const code = `
-      //     const proxy = new Proxy([${VALUE}], {});
-      //     for (let item of proxy) item
-      //   `;
-
-      //   const output = buildRun(code);
-
-      //   expect(output).to.equal(VALUE);
-      // });
-
-      // context('when using a for in', () => {
-      //   const code = `
-      //     const proxy = new Proxy([${VALUE}], {});
-      //     for (let key in proxy) proxy[key]
-      //   `;
-
-      //   const output = buildRun(code);
-
-      //   expect(output).to.equal(VALUE);
-      // });
     });
   });
 
@@ -197,7 +2452,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
         const output = buildRun(code);
 
-        expect(output).to.eq(VALUE);
+        expect(output).to.equal(VALUE);
       });
 
       context('when using es6 syntax', () => {
@@ -226,7 +2481,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
             const output = buildRun(code);
 
-            expect(output).to.eq(VALUE + 1);
+            expect(output).to.equal(VALUE + 1);
           });
 
           it('should return the property plus 1', () => {
@@ -237,7 +2492,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
             const output = buildRun(code);
 
-            expect(output).to.eq(VALUE + 1);
+            expect(output).to.equal(VALUE + 1);
           });
         });
       });
@@ -253,7 +2508,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
             const output = buildRun(code);
 
-            expect(output).to.eq(VALUE - 1);
+            expect(output).to.equal(VALUE - 1);
           });
 
           it('should return the property minus 1', () => {
@@ -264,7 +2519,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
             const output = buildRun(code);
 
-            expect(output).to.eq(VALUE - 1);
+            expect(output).to.equal(VALUE - 1);
           });
         });
       });
@@ -281,7 +2536,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
             const output = buildRun(code);
 
-            expect(output).to.eq(VALUE * n);
+            expect(output).to.equal(VALUE * n);
           });
 
           it('should return the property multiplied by 2', () => {
@@ -293,7 +2548,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
             const output = buildRun(code);
 
-            expect(output).to.eq(VALUE * n);
+            expect(output).to.equal(VALUE * n);
           });
         });
       });
@@ -310,7 +2565,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
             const output = buildRun(code);
 
-            expect(output).to.eq(VALUE / n);
+            expect(output).to.equal(VALUE / n);
           });
 
           it('should return the property divided by 2', () => {
@@ -322,7 +2577,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
             const output = buildRun(code);
 
-            expect(output).to.eq(VALUE / n);
+            expect(output).to.equal(VALUE / n);
           });
         });
       });
@@ -342,7 +2597,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
             const output = buildRun(code);
 
-            expect(output).to.eq(NEW_VALUE % n);
+            expect(output).to.equal(NEW_VALUE % n);
           });
 
           it('should return the property modulus 2', () => {
@@ -356,7 +2611,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
             const output = buildRun(code);
 
-            expect(output).to.eq(NEW_VALUE % n);
+            expect(output).to.equal(NEW_VALUE % n);
           });
         });
       });
@@ -379,7 +2634,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
             const output = buildRun(code);
 
-            expect(output).to.eq(VALUE & OTHER_VALUE); // eslint-disable-line no-bitwise
+            expect(output).to.equal(VALUE & OTHER_VALUE); // eslint-disable-line no-bitwise
           });
 
           it('should return 5', () => {
@@ -390,7 +2645,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
             const output = buildRun(code);
 
-            expect(output).to.eq(VALUE & OTHER_VALUE); // eslint-disable-line no-bitwise
+            expect(output).to.equal(VALUE & OTHER_VALUE); // eslint-disable-line no-bitwise
           });
         });
       });
@@ -413,7 +2668,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
             const output = buildRun(code);
 
-            expect(output).to.eq(VALUE | OTHER_VALUE); // eslint-disable-line no-bitwise
+            expect(output).to.equal(VALUE | OTHER_VALUE); // eslint-disable-line no-bitwise
           });
 
           it('should return 31', () => {
@@ -424,7 +2679,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
             const output = buildRun(code);
 
-            expect(output).to.eq(VALUE | OTHER_VALUE); // eslint-disable-line no-bitwise
+            expect(output).to.equal(VALUE | OTHER_VALUE); // eslint-disable-line no-bitwise
           });
         });
       });
@@ -447,7 +2702,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
             const output = buildRun(code);
 
-            expect(output).to.eq(VALUE ^ OTHER_VALUE); // eslint-disable-line no-bitwise
+            expect(output).to.equal(VALUE ^ OTHER_VALUE); // eslint-disable-line no-bitwise
           });
 
           it('should return 26', () => {
@@ -458,7 +2713,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
             const output = buildRun(code);
 
-            expect(output).to.eq(VALUE ^ OTHER_VALUE); // eslint-disable-line no-bitwise
+            expect(output).to.equal(VALUE ^ OTHER_VALUE); // eslint-disable-line no-bitwise
           });
         });
       });
@@ -478,7 +2733,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
             const output = buildRun(code);
 
-            expect(output).to.eq(VALUE << 1); // eslint-disable-line no-bitwise
+            expect(output).to.equal(VALUE << 1); // eslint-disable-line no-bitwise
           });
 
           it('should return 40', () => {
@@ -489,7 +2744,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
             const output = buildRun(code);
 
-            expect(output).to.eq(VALUE << 1); // eslint-disable-line no-bitwise
+            expect(output).to.equal(VALUE << 1); // eslint-disable-line no-bitwise
           });
         });
       });
@@ -509,7 +2764,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
             const output = buildRun(code);
 
-            expect(output).to.eq(VALUE >>> 1); // eslint-disable-line no-bitwise
+            expect(output).to.equal(VALUE >>> 1); // eslint-disable-line no-bitwise
           });
 
           it('should return 2147483643', () => {
@@ -520,7 +2775,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
             const output = buildRun(code);
 
-            expect(output).to.eq(VALUE >>> 1); // eslint-disable-line no-bitwise
+            expect(output).to.equal(VALUE >>> 1); // eslint-disable-line no-bitwise
           });
         });
       });
@@ -538,7 +2793,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
             const output = buildRun(code);
 
-            expect(output).to.eq(1);
+            expect(output).to.equal(1);
           });
 
           it('should return the not incremented property', () => {
@@ -549,7 +2804,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
             const output = buildRun(code);
 
-            expect(output).to.eq(0);
+            expect(output).to.equal(0);
           });
         });
 
@@ -563,7 +2818,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
             const output = buildRun(code);
 
-            expect(output).to.eq(1);
+            expect(output).to.equal(1);
           });
 
           it('should return the incremented property', () => {
@@ -574,7 +2829,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
             const output = buildRun(code);
 
-            expect(output).to.eq(1);
+            expect(output).to.equal(1);
           });
         });
       });
@@ -590,7 +2845,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
             const output = buildRun(code);
 
-            expect(output).to.eq(-1);
+            expect(output).to.equal(-1);
           });
 
           it('should return the not decremented property', () => {
@@ -601,7 +2856,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
             const output = buildRun(code);
 
-            expect(output).to.eq(0);
+            expect(output).to.equal(0);
           });
         });
 
@@ -615,7 +2870,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
             const output = buildRun(code);
 
-            expect(output).to.eq(-1);
+            expect(output).to.equal(-1);
           });
 
           it('should return the decremented property', () => {
@@ -626,7 +2881,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
             const output = buildRun(code);
 
-            expect(output).to.eq(-1);
+            expect(output).to.equal(-1);
           });
         });
       });
@@ -634,6 +2889,20 @@ describe('babel-plugin-es5-proxy @medium', () => {
   });
 
   context('when using a proxy', () => {
+    describe('comparison', () => {
+      it('should not equal target', () => {
+        const code = `
+          var target = {};
+          var proxy = new Proxy(target, {});
+          target === proxy;
+        `;
+
+        const output = buildRun(code);
+
+        expect(output).to.be.false;
+      });
+    });
+
     describe('assignmentExpression', () => {
       describe('+=', () => {
         context('when incrementing by 1', () => {
@@ -646,7 +2915,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
             const output = buildRun(code);
 
-            expect(output).to.eq(VALUE + 1);
+            expect(output).to.equal(VALUE + 1);
           });
 
           it('should return the property plus 1', () => {
@@ -657,7 +2926,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
             const output = buildRun(code);
 
-            expect(output).to.eq(VALUE + 1);
+            expect(output).to.equal(VALUE + 1);
           });
         });
       });
@@ -673,7 +2942,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
             const output = buildRun(code);
 
-            expect(output).to.eq(VALUE - 1);
+            expect(output).to.equal(VALUE - 1);
           });
 
           it('should return the property minus 1', () => {
@@ -684,7 +2953,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
             const output = buildRun(code);
 
-            expect(output).to.eq(VALUE - 1);
+            expect(output).to.equal(VALUE - 1);
           });
         });
       });
@@ -701,7 +2970,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
             const output = buildRun(code);
 
-            expect(output).to.eq(VALUE * n);
+            expect(output).to.equal(VALUE * n);
           });
 
           it('should return the property multiplied by 2', () => {
@@ -713,7 +2982,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
             const output = buildRun(code);
 
-            expect(output).to.eq(VALUE * n);
+            expect(output).to.equal(VALUE * n);
           });
         });
       });
@@ -730,7 +2999,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
             const output = buildRun(code);
 
-            expect(output).to.eq(VALUE / n);
+            expect(output).to.equal(VALUE / n);
           });
 
           it('should return the property divided by 2', () => {
@@ -742,7 +3011,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
             const output = buildRun(code);
 
-            expect(output).to.eq(VALUE / n);
+            expect(output).to.equal(VALUE / n);
           });
         });
       });
@@ -762,7 +3031,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
             const output = buildRun(code);
 
-            expect(output).to.eq(NEW_VALUE % n);
+            expect(output).to.equal(NEW_VALUE % n);
           });
 
           it('should return the property modulus 2', () => {
@@ -776,7 +3045,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
             const output = buildRun(code);
 
-            expect(output).to.eq(NEW_VALUE % n);
+            expect(output).to.equal(NEW_VALUE % n);
           });
         });
       });
@@ -799,7 +3068,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
             const output = buildRun(code);
 
-            expect(output).to.eq(VALUE & OTHER_VALUE); // eslint-disable-line no-bitwise
+            expect(output).to.equal(VALUE & OTHER_VALUE); // eslint-disable-line no-bitwise
           });
 
           it('should return 5', () => {
@@ -810,7 +3079,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
             const output = buildRun(code);
 
-            expect(output).to.eq(VALUE & OTHER_VALUE); // eslint-disable-line no-bitwise
+            expect(output).to.equal(VALUE & OTHER_VALUE); // eslint-disable-line no-bitwise
           });
         });
       });
@@ -833,7 +3102,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
             const output = buildRun(code);
 
-            expect(output).to.eq(VALUE | OTHER_VALUE); // eslint-disable-line no-bitwise
+            expect(output).to.equal(VALUE | OTHER_VALUE); // eslint-disable-line no-bitwise
           });
 
           it('should return 31', () => {
@@ -844,7 +3113,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
             const output = buildRun(code);
 
-            expect(output).to.eq(VALUE | OTHER_VALUE); // eslint-disable-line no-bitwise
+            expect(output).to.equal(VALUE | OTHER_VALUE); // eslint-disable-line no-bitwise
           });
         });
       });
@@ -867,7 +3136,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
             const output = buildRun(code);
 
-            expect(output).to.eq(VALUE ^ OTHER_VALUE); // eslint-disable-line no-bitwise
+            expect(output).to.equal(VALUE ^ OTHER_VALUE); // eslint-disable-line no-bitwise
           });
 
           it('should return 26', () => {
@@ -878,7 +3147,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
             const output = buildRun(code);
 
-            expect(output).to.eq(VALUE ^ OTHER_VALUE); // eslint-disable-line no-bitwise
+            expect(output).to.equal(VALUE ^ OTHER_VALUE); // eslint-disable-line no-bitwise
           });
         });
       });
@@ -898,7 +3167,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
             const output = buildRun(code);
 
-            expect(output).to.eq(VALUE << 1); // eslint-disable-line no-bitwise
+            expect(output).to.equal(VALUE << 1); // eslint-disable-line no-bitwise
           });
 
           it('should return 40', () => {
@@ -909,7 +3178,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
             const output = buildRun(code);
 
-            expect(output).to.eq(VALUE << 1); // eslint-disable-line no-bitwise
+            expect(output).to.equal(VALUE << 1); // eslint-disable-line no-bitwise
           });
         });
       });
@@ -929,7 +3198,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
             const output = buildRun(code);
 
-            expect(output).to.eq(VALUE >>> 1); // eslint-disable-line no-bitwise
+            expect(output).to.equal(VALUE >>> 1); // eslint-disable-line no-bitwise
           });
 
           it('should return 2147483643', () => {
@@ -940,7 +3209,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
             const output = buildRun(code);
 
-            expect(output).to.eq(VALUE >>> 1); // eslint-disable-line no-bitwise
+            expect(output).to.equal(VALUE >>> 1); // eslint-disable-line no-bitwise
           });
         });
       });
@@ -958,7 +3227,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
             const output = buildRun(code);
 
-            expect(output).to.eq(1);
+            expect(output).to.equal(1);
           });
 
           it('should return the not incremented property', () => {
@@ -969,7 +3238,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
             const output = buildRun(code);
 
-            expect(output).to.eq(0);
+            expect(output).to.equal(0);
           });
         });
 
@@ -983,7 +3252,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
             const output = buildRun(code);
 
-            expect(output).to.eq(1);
+            expect(output).to.equal(1);
           });
 
           it('should return the incremented property', () => {
@@ -994,7 +3263,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
             const output = buildRun(code);
 
-            expect(output).to.eq(1);
+            expect(output).to.equal(1);
           });
         });
       });
@@ -1010,7 +3279,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
             const output = buildRun(code);
 
-            expect(output).to.eq(-1);
+            expect(output).to.equal(-1);
           });
 
           it('should return the not decremented property', () => {
@@ -1021,7 +3290,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
             const output = buildRun(code);
 
-            expect(output).to.eq(0);
+            expect(output).to.equal(0);
           });
         });
 
@@ -1035,7 +3304,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
             const output = buildRun(code);
 
-            expect(output).to.eq(-1);
+            expect(output).to.equal(-1);
           });
 
           it('should return the decremented property', () => {
@@ -1046,7 +3315,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
             const output = buildRun(code);
 
-            expect(output).to.eq(-1);
+            expect(output).to.equal(-1);
           });
         });
       });
@@ -1120,7 +3389,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
         const output = buildRun(code);
 
-        expect(output).to.eq(VALUE);
+        expect(output).to.equal(VALUE);
       });
 
       it('should return the return value of the deleteProperty function', () => {
@@ -1135,7 +3404,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
         const output = buildRun(code);
 
-        expect(output).to.eq(true);
+        expect(output).to.equal(true);
       });
 
       context('when the deleteProperty handler does nothing', () => {
@@ -1148,7 +3417,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
           const output = buildRun(code);
 
-          expect(output).to.eq(VALUE);
+          expect(output).to.equal(VALUE);
         });
       });
     });
@@ -1250,7 +3519,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
           const output = buildRun(code);
 
-          expect(output).to.eq(true);
+          expect(output).to.equal(true);
         });
       });
     });
@@ -1394,7 +3663,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
           function nbr() { return ${VALUE}; }
           var stuff = { nbr: nbr };
           var i = 0;
-          for(stuff.nbr(); i < stuff.nbr() * 2; i++) {
+          for(stuff.nbr(); i <= stuff.nbr() * 2; i++) {
             index++;
           }
           index - 1;
@@ -1402,7 +3671,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
         const output = buildRun(code);
 
-        expect(output).to.equal(Math.round(VALUE));
+        expect(output).to.equal(Math.round(VALUE * 2)); // eslint-disable-line no-magic-numbers
       });
     });
 
@@ -1416,7 +3685,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
           index;
         `;
 
-        const output = buildRun(code, true);
+        const output = buildRun(code);
 
         expect(output).to.equal(1);
       });
