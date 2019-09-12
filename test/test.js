@@ -285,7 +285,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
         });
       });
 
-      context.only('Object.freeze', () => {
+      context('Object.freeze', () => {
         context('with proxy', () => {
           it('should freeze the target', () => {
             const code = `
@@ -565,12 +565,12 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
       context('Object.isSealed', () => {
         context('with proxy', () => {
-          context('when not sealed', () => {
+          context('when sealed', () => {
             it('should return true', () => {
               const code = `
                 var obj = {};
                 var proxy = new Proxy(obj, {});
-                Object.freeze(proxy);
+                Object.seal(proxy);
                 Object.isSealed(proxy);
               `;
 
@@ -580,7 +580,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
             });
           });
 
-          context('when sealed', () => {
+          context('when not sealed', () => {
             it('should return false', () => {
               const code = `
                 var obj = {};
@@ -596,11 +596,11 @@ describe('babel-plugin-es5-proxy @medium', () => {
         });
 
         context('without proxy', () => {
-          context('when not sealed', () => {
+          context('when sealed', () => {
             it('should return true', () => {
               const code = `
                 var obj = {};
-                Object.freeze(obj);
+                Object.seal(obj);
                 Object.isSealed(obj);
               `;
 
@@ -610,7 +610,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
             });
           });
 
-          context('when sealed', () => {
+          context('when not sealed', () => {
             it('should return false', () => {
               const code = `
                 var obj = {};
@@ -901,7 +901,8 @@ describe('babel-plugin-es5-proxy @medium', () => {
                 const code = `
                   var obj = {};
                   var newObject = Object.create(obj);
-                  (new Proxy(obj, {})).isPrototypeOf(newObject);
+                  var proxy = new Proxy(obj, {});
+                  Object.prototype.isPrototypeOf.call(proxy, newObject);
                 `;
 
                 const output = buildRun(code);
@@ -915,7 +916,8 @@ describe('babel-plugin-es5-proxy @medium', () => {
                 const code = `
                   var obj = {};
                   var newObject = Object.create(obj);
-                  obj.isPrototypeOf(new Proxy(newObject, {}));
+                  var proxy = new Proxy(newObject, {});
+                  Object.prototype.isPrototypeOf.call(obj, proxy);
                 `;
 
                 const output = buildRun(code);

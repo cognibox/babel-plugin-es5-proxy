@@ -278,6 +278,7 @@ window.toStringBackup = window.toStringBackup || Function.prototype.toString;
     'Object.getOwnPropertyDescriptor',
     'Object.freeze',
     'Object.getOwnPropertyNames',
+    'Object.getPrototypeOf',
     'Object.isExtensible',
     'Object.isFrozen',
     'Object.isSealed',
