@@ -367,7 +367,7 @@ function isProxy(object) {
 }
 
 function objectTarget(object) {
-  return isProxy(object) ? object.target() : object;
+  return isProxy(object) ? objectTarget(object.target()) : object;
 }
 
 if (!window.Proxy) {
