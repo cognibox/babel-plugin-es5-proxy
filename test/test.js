@@ -13,6 +13,22 @@ describe('babel-plugin-es5-proxy @medium', () => {
     VALUE = randomNumber();
   });
 
+  describe('objectTarget', () => {
+    it('should return the deepest non proxy target', () => {
+      const code = `
+        var target = {};
+        var proxy = new Proxy(target, {});
+        var proxyProxy = new Proxy(proxy, {});
+
+        __$object_target$__(proxyProxy) === target;
+      `;
+
+      const output = eval(build(code).code); // eslint-disable-line no-eval
+
+      expect(output).to.be.true;
+    });
+  });
+
   describe('native mocked functions', () => {
     context('Object', () => {
       context('Object.create', () => {
@@ -54,6 +70,50 @@ describe('babel-plugin-es5-proxy @medium', () => {
             const output = buildRun(code);
 
             expect(output).to.equal((VALUE * modifier) + (VALUE + modifier));
+          });
+
+          context('with nested proxy', () => {
+            it('should work', () => {
+              const modifier = 3;
+              const code = `
+                var mainObject = { a: ${VALUE} };
+                var mainProxy = new Proxy(mainObject, {
+                  get: function(target, property) {
+                    return target[property] * ${modifier};
+                  }
+                });
+                var descriptor = {
+                  foo: {
+                    writable: true,
+                    configurable: true,
+                    enumerable: true,
+                    value: ${VALUE}
+                  }
+                };
+                var descProxy = new Proxy(descriptor, {
+                  get: function(target, property) {
+                    var desc = target[property];
+                    return {
+                      writable: desc.writable,
+                      configurable: desc.configurable,
+                      enumerable: desc.enumerable,
+                      value: desc.value + ${modifier}
+                    };
+                  }
+                });
+
+                var mainProxyProxy = new Proxy(mainProxy, {});
+                var descProxyProxy = new Proxy(descProxy, {});
+
+                var newObject = Object.create(mainProxyProxy, descProxyProxy);
+
+                newObject.a + newObject.foo;
+              `;
+
+              const output = buildRun(code);
+
+              expect(output).to.equal((VALUE * modifier) + (VALUE + modifier));
+            });
           });
         });
 
@@ -259,6 +319,28 @@ describe('babel-plugin-es5-proxy @medium', () => {
               const output = buildRun(code);
 
               expect(output).to.be.true;
+            });
+          });
+
+          context('with nested proxy', () => {
+            it('should work', () => {
+              const code = `
+                var target = {};
+                var proxy = new Proxy(target, {});
+                var proxyProxy = new Proxy(proxy, {});
+                Object.defineProperty(proxyProxy, 'metaine', {
+                  enumerable: true,
+                  get() {
+                    return ${VALUE};
+                  }
+                });
+
+                target.metaine;
+              `;
+
+              const output = buildRun(code);
+
+              expect(output).to.equal(VALUE);
             });
           });
         });
