@@ -4,6 +4,8 @@ window.toStringBackup = window.toStringBackup || Function.prototype.toString;
 (function() { //eslint-disable-line
   if (window.nativePatchCalled) return;
 
+  window.lookUpGetterBackup = Object.prototype.__lookupGetter__;
+
   function buildObjectCreate() {
     var backup = Object.create;
 
@@ -318,10 +320,10 @@ function globalDeleter(object, propertyName) {
 function globalGetter(object, propertyName, proxy) {
   var value;
 
-  if (isProxy(object)) {
+  if (object instanceof window.Proxy) {
     value = object.get(propertyName, proxy);
   } else {
-    var getter = Object.prototype.__lookupGetter__.call(object, propertyName);
+    var getter = window.lookUpGetterBackup.call(object, propertyName);
     value = getter ? getter.call(proxy || object) : object[propertyName];
   }
   return value;
@@ -355,7 +357,7 @@ function globalInstanceof(object, cls) { // eslint-disable-line no-unused-vars
 }
 
 function globalSetter(object, propertyName, value) {
-  if (isProxy(object)) {
+  if (object instanceof window.Proxy) {
     return object.set(propertyName, value);
   }
   object[propertyName] = value;
