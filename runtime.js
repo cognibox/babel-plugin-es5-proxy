@@ -1,8 +1,12 @@
-/* eslint-disable prefer-rest-params, no-var, comma-dangle, prefer-template, no-eval, prefer-spread */
+/* eslint-disable prefer-rest-params, no-var, comma-dangle, prefer-template, no-eval, prefer-spread, prefer-arrow-callback, no-invalid-this */
 window.toStringBackup = window.toStringBackup || Function.prototype.toString;
 
 (function() { //eslint-disable-line
   if (window.nativePatchCalled) return;
+
+  function buildNativeless(nativeFn, newFn) {
+    nativeFn.__$nativeless$__ = newFn;
+  }
 
   function buildObjectCreate() {
     var backup = Object.create;
@@ -13,30 +17,30 @@ window.toStringBackup = window.toStringBackup || Function.prototype.toString;
       return obj.formatTarget();
     }
 
-    Object.create = function(proto, propertiesObject) {
+    buildNativeless(Object.create, function(proto, propertiesObject) {
       var newProto = buildObject(proto);
       var newPropertiesObject = buildObject(propertiesObject);
 
       return backup.call(Object, newProto, newPropertiesObject);
-    };
+    });
   }
 
   function buildSetPrototypeOf() {
     var backup = Object.setPrototypeOf;
 
-    Object.setPrototypeOf = function(obj, proto) {
+    buildNativeless(Object.setPrototypeOf, function(obj, proto) {
       if (isProxy(obj) || isProxy(proto)) {
         throw '[babel-plugin-es5-proxy] \'Object.setPrototypeOf\' not implemented with proxy as arguments'; //eslint-disable-line
       }
 
       return backup.call(Object, obj, proto);
-    };
+    });
   }
 
   function buildConcat() {
     var backup = Array.prototype.concat;
 
-    Array.prototype.concat = function() { //eslint-disable-line
+    buildNativeless(Array.prototype.concat, function() { //eslint-disable-line
       var target = isProxy(this) ? this.formatTarget() : this;
       var argLen = arguments.length;
       var args = [];
@@ -46,13 +50,13 @@ window.toStringBackup = window.toStringBackup || Function.prototype.toString;
       }
 
       return backup.apply(target, args);
-    };
+    });
   }
 
   function buildPop() {
     var backup = Array.prototype.pop;
 
-    Array.prototype.pop = function() { //eslint-disable-line
+    buildNativeless(Array.prototype.pop, function() { //eslint-disable-line
       if (isProxy(this)) {
         var length = this.get('length');
         var value = this.get(length - 1);
@@ -63,13 +67,13 @@ window.toStringBackup = window.toStringBackup || Function.prototype.toString;
       }
 
       return backup.apply(this, arguments);
-    };
+    });
   }
 
   function buildShift() {
     var backup = Array.prototype.shift;
 
-    Array.prototype.shift = function() { //eslint-disable-line
+    buildNativeless(Array.prototype.shift, function() { //eslint-disable-line
       if (isProxy(this)) {
         var value = this.get(0);
 
@@ -79,13 +83,13 @@ window.toStringBackup = window.toStringBackup || Function.prototype.toString;
       }
 
       return backup.apply(this, arguments);
-    };
+    });
   }
 
   function buildReverse() {
     var backup = Array.prototype.reverse;
 
-    Array.prototype.reverse = function() { //eslint-disable-line
+    buildNativeless(Array.prototype.reverse, function() { //eslint-disable-line
       var target = objectTarget(this);
 
       var thisIsProxy = isProxy(this);
@@ -109,13 +113,13 @@ window.toStringBackup = window.toStringBackup || Function.prototype.toString;
       }
 
       return this;
-    };
+    });
   }
 
   function buildSort() {
     var backup = Array.prototype.sort;
 
-    Array.prototype.sort = function() { //eslint-disable-line
+    buildNativeless(Array.prototype.sort, function() { //eslint-disable-line
       var target = objectTarget(this);
 
       if (isProxy(this)) {
@@ -133,13 +137,13 @@ window.toStringBackup = window.toStringBackup || Function.prototype.toString;
       }
 
       return this;
-    };
+    });
   }
 
   function buildSplice() {
     var backup = Array.prototype.splice;
 
-    Array.prototype.splice = function(start, deleteCount) { //eslint-disable-line
+    buildNativeless(Array.prototype.splice, function(start, deleteCount) { //eslint-disable-line
       if (isProxy(this)) {
         var len = this.get('length');
         var relativeStart = parseInt(start, 10);
@@ -185,7 +189,7 @@ window.toStringBackup = window.toStringBackup || Function.prototype.toString;
       }
 
       return backup.apply(this, arguments);
-    };
+    });
   }
 
   function buildFunctions(fnNames, fn) {
@@ -204,7 +208,7 @@ window.toStringBackup = window.toStringBackup || Function.prototype.toString;
       return backup.apply(target, arguments);
     };
 
-    eval(fnName + ' = fn;');
+    eval('buildNativeless(' + fnName + ', fn);');
   }
 
   function buildWithThisAsTarget(fnName) {
@@ -214,7 +218,7 @@ window.toStringBackup = window.toStringBackup || Function.prototype.toString;
       return backup.apply(objectTarget(this), arguments); //eslint-disable-line no-invalid-this
     };
 
-    eval(fnName + ' = fn;');
+    eval('buildNativeless(' + fnName + ', fn);');
   }
 
   function buildWithFirstParamAsTarget(fnName) {
@@ -229,7 +233,7 @@ window.toStringBackup = window.toStringBackup || Function.prototype.toString;
       return backup.apply(this, args); //eslint-disable-line no-invalid-this
     };
 
-    eval(fnName + ' = fn;');
+    eval('buildNativeless(' + fnName + ', fn);');
   }
 
   function buildWithAParamTargetParsed(fnName, index) {
@@ -247,7 +251,7 @@ window.toStringBackup = window.toStringBackup || Function.prototype.toString;
       return backup.apply(this, args); //eslint-disable-line no-invalid-this
     };
 
-    eval(fnName + ' = fn;');
+    eval('buildNativeless(' + fnName + ', fn);');
   }
 
   buildObjectCreate();
@@ -341,6 +345,10 @@ function globalCaller(fn, target, args) {
     fn = target;
     target = args[0];
     args = args[1] || [];
+  }
+
+  if (fn.__$nativeless$__) {
+    fn = fn.__$nativeless$__;
   }
 
   return fn.apply(target, args);
