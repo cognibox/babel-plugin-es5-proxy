@@ -150,6 +150,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
             const code = `
               var target = { value: ${VALUE} };
               var proxy = new Proxy(target, {});
+
               Object.defineProperties(proxy, {
                 v: {
                   enumerable: true,

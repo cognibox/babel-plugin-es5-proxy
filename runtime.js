@@ -53,6 +53,26 @@ window.toStringBackup = window.toStringBackup || Function.prototype.toString;
     });
   }
 
+  function buildDefineProperties() {
+    var backup = Object.defineProperties;
+
+    buildNativeless(Object.defineProperties, function(obj, props) { //eslint-disable-line
+      var args = [objectTarget(obj), formatTargetObject(props, true)];
+
+      return backup.apply(this, args);
+    });
+  }
+
+  function buildDefineProperty() {
+    var backup = Object.defineProperty;
+
+    buildNativeless(Object.defineProperty, function(obj, prop, descriptor) { //eslint-disable-line
+      var args = [objectTarget(obj), prop, formatTargetObject(descriptor, true)];
+
+      return backup.apply(this, args);
+    });
+  }
+
   function buildPop() {
     var backup = Array.prototype.pop;
 
@@ -254,11 +274,13 @@ window.toStringBackup = window.toStringBackup || Function.prototype.toString;
     eval('buildNativeless(' + fnName + ', fn);');
   }
 
-  buildObjectCreate();
-  buildSetPrototypeOf();
   buildConcat();
+  buildDefineProperty();
+  buildDefineProperties();
+  buildObjectCreate();
   buildPop();
   buildReverse();
+  buildSetPrototypeOf();
   buildShift();
   buildSort();
   buildSplice();
@@ -277,8 +299,6 @@ window.toStringBackup = window.toStringBackup || Function.prototype.toString;
   ], buildWithThisAsTarget);
 
   buildFunctions([
-    'Object.defineProperties',
-    'Object.defineProperty',
     'Object.getOwnPropertyDescriptor',
     'Object.freeze',
     'Object.getOwnPropertyNames',
@@ -308,9 +328,6 @@ window.toStringBackup = window.toStringBackup || Function.prototype.toString;
     'Array.prototype.indexOf',
     'Array.prototype.lastIndexOf'
   ], buildWithThisAsFormattedTarget);
-
-  buildWithAParamTargetParsed('Object.defineProperties', 1);
-  buildWithAParamTargetParsed('Object.defineProperty', 2); // eslint-disable-line no-magic-numbers
 })();
 
 window.nativePatchCalled = true;
@@ -442,7 +459,7 @@ if (!window.Proxy) {
   };
 
   window.Proxy.prototype.formatTarget = function() {
-    return Array.isArray(this.target()) ? this.formatTargetArray() : this.formatTargetObject();
+    return Array.isArray.__$nativeless$__(this.target()) ? this.formatTargetArray() : this.formatTargetObject();
   };
 
   window.Proxy.prototype.formatTargetArray = function() {
@@ -464,7 +481,7 @@ function formatTargetObject(obj, deep) {
   if (!isProxy(obj)) return obj;
 
   var newObj = {};
-  var keys = Object.getOwnPropertyNames(obj.target());
+  var keys = Object.getOwnPropertyNames.__$nativeless$__.call(Object, obj.target());
   var keyLength = keys.length;
   for (var i = 0; i < keyLength; i++) {
     var key = keys[i];
