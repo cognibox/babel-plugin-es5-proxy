@@ -1,8 +1,12 @@
-/* eslint-disable prefer-rest-params, no-var, comma-dangle, prefer-template, no-eval, prefer-spread */
+/* eslint-disable prefer-rest-params, no-var, comma-dangle, prefer-template, no-eval, prefer-spread, prefer-arrow-callback, no-invalid-this */
 window.toStringBackup = window.toStringBackup || Function.prototype.toString;
 
 (function() { //eslint-disable-line
   if (window.nativePatchCalled) return;
+
+  function buildNativeless(nativeFn, newFn) {
+    nativeFn.__$nativeless$__ = newFn;
+  }
 
   function buildObjectCreate() {
     var backup = Object.create;
@@ -13,30 +17,30 @@ window.toStringBackup = window.toStringBackup || Function.prototype.toString;
       return obj.formatTarget();
     }
 
-    Object.create = function(proto, propertiesObject) {
+    buildNativeless(Object.create, function(proto, propertiesObject) {
       var newProto = buildObject(proto);
       var newPropertiesObject = buildObject(propertiesObject);
 
       return backup.call(Object, newProto, newPropertiesObject);
-    };
+    });
   }
 
   function buildSetPrototypeOf() {
     var backup = Object.setPrototypeOf;
 
-    Object.setPrototypeOf = function(obj, proto) {
+    buildNativeless(Object.setPrototypeOf, function(obj, proto) {
       if (isProxy(obj) || isProxy(proto)) {
         throw '[babel-plugin-es5-proxy] \'Object.setPrototypeOf\' not implemented with proxy as arguments'; //eslint-disable-line
       }
 
       return backup.call(Object, obj, proto);
-    };
+    });
   }
 
   function buildConcat() {
     var backup = Array.prototype.concat;
 
-    Array.prototype.concat = function() { //eslint-disable-line
+    buildNativeless(Array.prototype.concat, function() { //eslint-disable-line
       var target = isProxy(this) ? this.formatTarget() : this;
       var argLen = arguments.length;
       var args = [];
@@ -46,13 +50,33 @@ window.toStringBackup = window.toStringBackup || Function.prototype.toString;
       }
 
       return backup.apply(target, args);
-    };
+    });
+  }
+
+  function buildDefineProperties() {
+    var backup = Object.defineProperties;
+
+    buildNativeless(Object.defineProperties, function(obj, props) { //eslint-disable-line
+      var args = [objectTarget(obj), formatTargetObject(props, true)];
+
+      return backup.apply(this, args);
+    });
+  }
+
+  function buildDefineProperty() {
+    var backup = Object.defineProperty;
+
+    buildNativeless(Object.defineProperty, function(obj, prop, descriptor) { //eslint-disable-line
+      var args = [objectTarget(obj), prop, formatTargetObject(descriptor, true)];
+
+      return backup.apply(this, args);
+    });
   }
 
   function buildPop() {
     var backup = Array.prototype.pop;
 
-    Array.prototype.pop = function() { //eslint-disable-line
+    buildNativeless(Array.prototype.pop, function() { //eslint-disable-line
       if (isProxy(this)) {
         var length = this.get('length');
         var value = this.get(length - 1);
@@ -63,13 +87,13 @@ window.toStringBackup = window.toStringBackup || Function.prototype.toString;
       }
 
       return backup.apply(this, arguments);
-    };
+    });
   }
 
   function buildShift() {
     var backup = Array.prototype.shift;
 
-    Array.prototype.shift = function() { //eslint-disable-line
+    buildNativeless(Array.prototype.shift, function() { //eslint-disable-line
       if (isProxy(this)) {
         var value = this.get(0);
 
@@ -79,13 +103,13 @@ window.toStringBackup = window.toStringBackup || Function.prototype.toString;
       }
 
       return backup.apply(this, arguments);
-    };
+    });
   }
 
   function buildReverse() {
     var backup = Array.prototype.reverse;
 
-    Array.prototype.reverse = function() { //eslint-disable-line
+    buildNativeless(Array.prototype.reverse, function() { //eslint-disable-line
       var target = objectTarget(this);
 
       var thisIsProxy = isProxy(this);
@@ -109,13 +133,13 @@ window.toStringBackup = window.toStringBackup || Function.prototype.toString;
       }
 
       return this;
-    };
+    });
   }
 
   function buildSort() {
     var backup = Array.prototype.sort;
 
-    Array.prototype.sort = function() { //eslint-disable-line
+    buildNativeless(Array.prototype.sort, function() { //eslint-disable-line
       var target = objectTarget(this);
 
       if (isProxy(this)) {
@@ -133,13 +157,13 @@ window.toStringBackup = window.toStringBackup || Function.prototype.toString;
       }
 
       return this;
-    };
+    });
   }
 
   function buildSplice() {
     var backup = Array.prototype.splice;
 
-    Array.prototype.splice = function(start, deleteCount) { //eslint-disable-line
+    buildNativeless(Array.prototype.splice, function(start, deleteCount) { //eslint-disable-line
       if (isProxy(this)) {
         var len = this.get('length');
         var relativeStart = parseInt(start, 10);
@@ -185,7 +209,7 @@ window.toStringBackup = window.toStringBackup || Function.prototype.toString;
       }
 
       return backup.apply(this, arguments);
-    };
+    });
   }
 
   function buildFunctions(fnNames, fn) {
@@ -204,7 +228,7 @@ window.toStringBackup = window.toStringBackup || Function.prototype.toString;
       return backup.apply(target, arguments);
     };
 
-    eval(fnName + ' = fn;');
+    buildNativeless(fnName, fn);
   }
 
   function buildWithThisAsTarget(fnName) {
@@ -214,7 +238,7 @@ window.toStringBackup = window.toStringBackup || Function.prototype.toString;
       return backup.apply(objectTarget(this), arguments); //eslint-disable-line no-invalid-this
     };
 
-    eval(fnName + ' = fn;');
+    buildNativeless(fnName, fn);
   }
 
   function buildWithFirstParamAsTarget(fnName) {
@@ -229,84 +253,63 @@ window.toStringBackup = window.toStringBackup || Function.prototype.toString;
       return backup.apply(this, args); //eslint-disable-line no-invalid-this
     };
 
-    eval(fnName + ' = fn;');
+    buildNativeless(fnName, fn);
   }
 
-  function buildWithAParamTargetParsed(fnName, index) {
-    var backup = eval(fnName);
-
-    var fn = function() { //eslint-disable-line
-      var argLen = arguments.length;
-      var args = [];
-      for (var argIndex = 0; argIndex < argLen; argIndex++) {
-        args[argIndex] = arguments[argIndex];
-      }
-
-      args[index] = formatTargetObject(args[index], true);
-
-      return backup.apply(this, args); //eslint-disable-line no-invalid-this
-    };
-
-    eval(fnName + ' = fn;');
-  }
-
-  buildObjectCreate();
-  buildSetPrototypeOf();
   buildConcat();
+  buildDefineProperty();
+  buildDefineProperties();
+  buildObjectCreate();
   buildPop();
   buildReverse();
+  buildSetPrototypeOf();
   buildShift();
   buildSort();
   buildSplice();
 
   buildFunctions([
-    'Object.prototype.hasOwnProperty',
-    'Object.prototype.propertyIsEnumerable',
-    'Object.prototype.toLocaleString',
-    'Object.prototype.toString',
-    'Object.prototype.__defineGetter__',
-    'Object.prototype.__defineSetter__',
-    'Object.prototype.__lookupGetter__',
-    'Object.prototype.__lookupSetter__',
-    'Array.prototype.push',
-    'Array.prototype.unshift'
+    Object.prototype.hasOwnProperty,
+    Object.prototype.propertyIsEnumerable,
+    Object.prototype.toLocaleString,
+    Object.prototype.toString,
+    Object.prototype.__defineGetter__,
+    Object.prototype.__defineSetter__,
+    Object.prototype.__lookupGetter__,
+    Object.prototype.__lookupSetter__,
+    Array.prototype.push,
+    Array.prototype.unshift
   ], buildWithThisAsTarget);
 
   buildFunctions([
-    'Object.defineProperties',
-    'Object.defineProperty',
-    'Object.getOwnPropertyDescriptor',
-    'Object.freeze',
-    'Object.getOwnPropertyNames',
-    'Object.getPrototypeOf',
-    'Object.isExtensible',
-    'Object.isFrozen',
-    'Object.isSealed',
-    'Object.keys',
-    'Object.preventExtensions',
-    'Object.seal',
-    'Object.prototype.isPrototypeOf',
-    'Array.isArray'
+    Object.getOwnPropertyDescriptor,
+    Object.freeze,
+    Object.getOwnPropertyNames,
+    Object.getPrototypeOf,
+    Object.isExtensible,
+    Object.isFrozen,
+    Object.isSealed,
+    Object.keys,
+    Object.preventExtensions,
+    Object.seal,
+    Object.prototype.isPrototypeOf,
+    Array.isArray
   ], buildWithFirstParamAsTarget);
 
   buildFunctions([
-    'Array.prototype.join',
-    'Array.prototype.slice',
-    'Array.prototype.toLocaleString',
-    'Array.prototype.toString',
-    'Array.prototype.some',
-    'Array.prototype.filter',
-    'Array.prototype.every',
-    'Array.prototype.reduce',
-    'Array.prototype.reduceRight',
-    'Array.prototype.map',
-    'Array.prototype.forEach',
-    'Array.prototype.indexOf',
-    'Array.prototype.lastIndexOf'
+    Array.prototype.join,
+    Array.prototype.slice,
+    Array.prototype.toLocaleString,
+    Array.prototype.toString,
+    Array.prototype.some,
+    Array.prototype.filter,
+    Array.prototype.every,
+    Array.prototype.reduce,
+    Array.prototype.reduceRight,
+    Array.prototype.map,
+    Array.prototype.forEach,
+    Array.prototype.indexOf,
+    Array.prototype.lastIndexOf
   ], buildWithThisAsFormattedTarget);
-
-  buildWithAParamTargetParsed('Object.defineProperties', 1);
-  buildWithAParamTargetParsed('Object.defineProperty', 2); // eslint-disable-line no-magic-numbers
 })();
 
 window.nativePatchCalled = true;
@@ -341,6 +344,10 @@ function globalCaller(fn, target, args) {
     fn = target;
     target = args[0];
     args = args[1] || [];
+  }
+
+  if (fn.__$nativeless$__) {
+    fn = fn.__$nativeless$__;
   }
 
   return fn.apply(target, args);
@@ -434,7 +441,7 @@ if (!window.Proxy) {
   };
 
   window.Proxy.prototype.formatTarget = function() {
-    return Array.isArray(this.target()) ? this.formatTargetArray() : this.formatTargetObject();
+    return Array.isArray.__$nativeless$__(this.target()) ? this.formatTargetArray() : this.formatTargetObject();
   };
 
   window.Proxy.prototype.formatTargetArray = function() {
@@ -456,7 +463,7 @@ function formatTargetObject(obj, deep) {
   if (!isProxy(obj)) return obj;
 
   var newObj = {};
-  var keys = Object.getOwnPropertyNames(obj.target());
+  var keys = Object.getOwnPropertyNames.__$nativeless$__.call(Object, obj.target());
   var keyLength = keys.length;
   for (var i = 0; i < keyLength; i++) {
     var key = keys[i];
