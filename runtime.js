@@ -228,7 +228,7 @@ window.toStringBackup = window.toStringBackup || Function.prototype.toString;
       return backup.apply(target, arguments);
     };
 
-    eval('buildNativeless(' + fnName + ', fn);');
+    buildNativeless(fnName, fn);
   }
 
   function buildWithThisAsTarget(fnName) {
@@ -238,7 +238,7 @@ window.toStringBackup = window.toStringBackup || Function.prototype.toString;
       return backup.apply(objectTarget(this), arguments); //eslint-disable-line no-invalid-this
     };
 
-    eval('buildNativeless(' + fnName + ', fn);');
+    buildNativeless(fnName, fn);
   }
 
   function buildWithFirstParamAsTarget(fnName) {
@@ -253,25 +253,7 @@ window.toStringBackup = window.toStringBackup || Function.prototype.toString;
       return backup.apply(this, args); //eslint-disable-line no-invalid-this
     };
 
-    eval('buildNativeless(' + fnName + ', fn);');
-  }
-
-  function buildWithAParamTargetParsed(fnName, index) {
-    var backup = eval(fnName);
-
-    var fn = function() { //eslint-disable-line
-      var argLen = arguments.length;
-      var args = [];
-      for (var argIndex = 0; argIndex < argLen; argIndex++) {
-        args[argIndex] = arguments[argIndex];
-      }
-
-      args[index] = formatTargetObject(args[index], true);
-
-      return backup.apply(this, args); //eslint-disable-line no-invalid-this
-    };
-
-    eval('buildNativeless(' + fnName + ', fn);');
+    buildNativeless(fnName, fn);
   }
 
   buildConcat();
@@ -286,47 +268,47 @@ window.toStringBackup = window.toStringBackup || Function.prototype.toString;
   buildSplice();
 
   buildFunctions([
-    'Object.prototype.hasOwnProperty',
-    'Object.prototype.propertyIsEnumerable',
-    'Object.prototype.toLocaleString',
-    'Object.prototype.toString',
-    'Object.prototype.__defineGetter__',
-    'Object.prototype.__defineSetter__',
-    'Object.prototype.__lookupGetter__',
-    'Object.prototype.__lookupSetter__',
-    'Array.prototype.push',
-    'Array.prototype.unshift'
+    Object.prototype.hasOwnProperty,
+    Object.prototype.propertyIsEnumerable,
+    Object.prototype.toLocaleString,
+    Object.prototype.toString,
+    Object.prototype.__defineGetter__,
+    Object.prototype.__defineSetter__,
+    Object.prototype.__lookupGetter__,
+    Object.prototype.__lookupSetter__,
+    Array.prototype.push,
+    Array.prototype.unshift
   ], buildWithThisAsTarget);
 
   buildFunctions([
-    'Object.getOwnPropertyDescriptor',
-    'Object.freeze',
-    'Object.getOwnPropertyNames',
-    'Object.getPrototypeOf',
-    'Object.isExtensible',
-    'Object.isFrozen',
-    'Object.isSealed',
-    'Object.keys',
-    'Object.preventExtensions',
-    'Object.seal',
-    'Object.prototype.isPrototypeOf',
-    'Array.isArray'
+    Object.getOwnPropertyDescriptor,
+    Object.freeze,
+    Object.getOwnPropertyNames,
+    Object.getPrototypeOf,
+    Object.isExtensible,
+    Object.isFrozen,
+    Object.isSealed,
+    Object.keys,
+    Object.preventExtensions,
+    Object.seal,
+    Object.prototype.isPrototypeOf,
+    Array.isArray
   ], buildWithFirstParamAsTarget);
 
   buildFunctions([
-    'Array.prototype.join',
-    'Array.prototype.slice',
-    'Array.prototype.toLocaleString',
-    'Array.prototype.toString',
-    'Array.prototype.some',
-    'Array.prototype.filter',
-    'Array.prototype.every',
-    'Array.prototype.reduce',
-    'Array.prototype.reduceRight',
-    'Array.prototype.map',
-    'Array.prototype.forEach',
-    'Array.prototype.indexOf',
-    'Array.prototype.lastIndexOf'
+    Array.prototype.join,
+    Array.prototype.slice,
+    Array.prototype.toLocaleString,
+    Array.prototype.toString,
+    Array.prototype.some,
+    Array.prototype.filter,
+    Array.prototype.every,
+    Array.prototype.reduce,
+    Array.prototype.reduceRight,
+    Array.prototype.map,
+    Array.prototype.forEach,
+    Array.prototype.indexOf,
+    Array.prototype.lastIndexOf
   ], buildWithThisAsFormattedTarget);
 })();
 
