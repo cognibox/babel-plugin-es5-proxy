@@ -8,6 +8,43 @@ window.toStringBackup = window.toStringBackup || Function.prototype.toString;
     nativeFn.__$nativeless$__ = newFn;
   }
 
+  function buildObjectAssign() {
+    buildNativeless(Object.assign, function() {
+      var target = arguments[0];
+
+      var sources = [];
+      var argumentLength = arguments.length;
+
+      var i;
+
+      if (argumentLength > 1) {
+        for (i = 1; i < argumentLength; i++) {
+          sources[i] = formatTargetObject(arguments[i], false);
+        }
+      }
+
+      if (isProxy(target)) {
+        if (argumentLength === 1) return target;
+
+        for (i = 1; i < argumentLength; i++) {
+          var source = sources[i];
+          var keys = Object.keys(source);
+
+          for (var keyIndex = 0; keyIndex < keys.length; keyIndex++) {
+            var key = keys[keyIndex];
+
+            target.set(key, source[key]);
+          }
+        }
+
+        return target;
+      }
+
+      sources.unshift(target);
+      return Object.assign.apply(this, sources);
+    });
+  }
+
   function buildObjectCreate() {
     var backup = Object.create;
 
@@ -256,6 +293,7 @@ window.toStringBackup = window.toStringBackup || Function.prototype.toString;
     buildNativeless(fnName, fn);
   }
 
+  buildObjectAssign();
   buildConcat();
   buildDefineProperty();
   buildDefineProperties();

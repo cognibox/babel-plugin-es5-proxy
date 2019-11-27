@@ -31,6 +31,104 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
   describe('native mocked functions', () => {
     context('Object', () => {
+      context('Object.assign', () => {
+        context('with proxy', () => {
+          it('should work', () => {
+            const code = `
+              var target = { a: 3, b: 6, c: 9 };
+              var source1 = { a: 5, d: 4 };
+              var source2 = { b: 4, d: 5, e: 3 };
+
+              var targetProxy = new Proxy(target, {
+                get(obj, property) {
+                  if (property.length === 1 && obj[property]) return obj[property] + 1;
+
+                  return obj[property];
+                },
+
+                set(obj, property, value) {
+                  if (property.length === 1) {
+                    obj[property] = value * 5;
+                  } else {
+                    obj[property] = value;
+                  }
+
+                  return true;
+                }
+              });
+              var source1Proxy = new Proxy(source1, {
+                get(obj, property) {
+                  if (property.length === 1 && obj[property]) return obj[property] + 10;
+
+                  return obj[property];
+                },
+
+                set(obj, property, value) {
+                  if (property.length === 1) {
+                    obj[property] = value * 50;
+                  } else {
+                    obj[property] = value;
+                  }
+
+                  return true;
+                }
+              });
+              var source2Proxy = new Proxy(source2, {
+                get(obj, property) {
+                  if (property.length === 1 && obj[property]) return obj[property] + 100;
+
+                  return obj[property];
+                },
+
+                set(obj, property, value) {
+                  if (property.length === 1) {
+                    obj[property] = value * 500;
+                  } else {
+                    obj[property] = value;
+                  }
+
+                  return true;
+                }
+              });
+
+              Object.assign(targetProxy, source1Proxy, source2Proxy);
+
+              var istargetOk = targetProxy.a === 76 && targetProxy.b === 521 && targetProxy.c === 10 && targetProxy.d === 526 && targetProxy.e === 516;
+              var isSource1Ok = Object.keys(source1Proxy).length === 2 && source1Proxy.a === 15 && source1Proxy.d === 14;
+              var isSource2Ok = Object.keys(source2Proxy).length === 3 && source2Proxy.b === 104 && source2Proxy.d === 105 && source2Proxy.e === 103;
+
+              istargetOk && isSource1Ok && isSource2Ok;
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.be.true;
+          });
+        });
+
+        context('without proxy', () => {
+          it('should work', () => {
+            const code = `
+              var target = { a: 3, b: 6, c: 9 };
+              var source1 = { a: 5, d: 4 };
+              var source2 = { b: 4, d: 5, e: 3 };
+
+              Object.assign(target, source1, source2);
+
+              var istargetOk = target.a === 5 && target.b === 4 && target.c === 9 && target.d === 5 && target.e === 3;
+              var isSource1Ok = Object.keys(source1).length === 2 && source1.a === 5 && source1.d === 4;
+              var isSource2Ok = Object.keys(source2).length === 3 && source2.b === 4 && source2.d === 5 && source2.e === 3;
+
+              istargetOk && isSource1Ok && isSource2Ok;
+            `;
+
+            const output = buildRun(code);
+
+            expect(output).to.be.true;
+          });
+        });
+      });
+
       context('Object.create', () => {
         context('with proxy', () => {
           it('should work', () => {
