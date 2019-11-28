@@ -2441,7 +2441,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
           let obj = { foo: 'bar' };
 
           Object.defineProperty(obj, 'mew', {
-            enumarable: false,
+            enumerable: false,
             value: 5,
           });
 

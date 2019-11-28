@@ -52,6 +52,16 @@ window.toStringBackup = window.toStringBackup || Function.prototype.toString;
       var argumentLength = arguments.length;
       for (var i = 0; i < argumentLength; i++) {
         if (isProxy(arguments[i])) {
+          /*
+            this is not implemented yet because of complexity.
+            example:
+              var obj = { a: 3 };
+              var proxyWithHandler = new Proxy(obj, { get(t, p) { return t[p]; } });
+              var proxyWithoutHandler = new Proxy(obj, {});
+
+              Object.keys(Object.create(proxyWithHandler).__proto__).length === 0;
+              Object.keys(Object.create(proxyWithoutHandler).__proto__).length === 1;
+          */
           throw TypeError('Cannot call Object.create with a proxy');
         }
       }
