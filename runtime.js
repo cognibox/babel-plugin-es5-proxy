@@ -514,7 +514,7 @@ function formatTargetObject(obj, deep) {
   for (var i = 0; i < keyLength; i++) {
     var key = keys[i];
     var descriptor = Object.getOwnPropertyDescriptor.__$nativeless$__.call(Object, obj, key);
-    descriptor.value = obj.get(key, obj);
+    if (!descriptor.get) descriptor.value = obj.get(key, obj);
 
     if (deep && descriptor.value) {
       descriptor.value = formatTargetObject(descriptor.value, deep);
