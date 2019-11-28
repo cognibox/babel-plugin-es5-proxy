@@ -131,86 +131,32 @@ describe('babel-plugin-es5-proxy @medium', () => {
 
       context('Object.create', () => {
         context('with proxy', () => {
-          it('should work', () => {
-            const modifier = 3;
-            const code = `
-              var mainObject = { a: ${VALUE} };
-              var mainProxy = new Proxy(mainObject, {
-                get: function(target, property) {
-                  return target[property] * ${modifier};
-                }
-              });
-              var descriptor = {
-                foo: {
-                  writable: true,
-                  configurable: true,
-                  enumerable: true,
-                  value: ${VALUE}
-                }
-              };
-              var descProxy = new Proxy(descriptor, {
-                get: function(target, property) {
-                  var desc = target[property];
-                  return {
-                    writable: desc.writable,
-                    configurable: desc.configurable,
-                    enumerable: desc.enumerable,
-                    value: desc.value + ${modifier}
-                  };
-                }
-              });
+          context('when proto is a proxy', () => {
+            it('should throw an error', () => {
+              expect(() => {
+                const code = `
+                  var obj = {};
+                  var proxy = new Proxy(obj, {});
 
-              var newObject = Object.create(mainProxy, descProxy);
+                  Object.create(proxy);
+                `;
 
-              newObject.a + newObject.foo;
-            `;
-
-            const output = buildRun(code);
-
-            expect(output).to.equal((VALUE * modifier) + (VALUE + modifier));
+                buildRun(code);
+              }).to.throw('Cannot call Object.create with a proxy');
+            });
           });
 
-          context('with nested proxy', () => {
-            it('should work', () => {
-              const modifier = 3;
-              const code = `
-                var mainObject = { a: ${VALUE} };
-                var mainProxy = new Proxy(mainObject, {
-                  get: function(target, property) {
-                    return target[property] * ${modifier};
-                  }
-                });
-                var descriptor = {
-                  foo: {
-                    writable: true,
-                    configurable: true,
-                    enumerable: true,
-                    value: ${VALUE}
-                  }
-                };
-                var descProxy = new Proxy(descriptor, {
-                  get: function(target, property) {
-                    var desc = target[property];
-                    return {
-                      writable: desc.writable,
-                      configurable: desc.configurable,
-                      enumerable: desc.enumerable,
-                      value: desc.value + ${modifier}
-                    };
-                  }
-                });
+          context('when properties are proxy', () => {
+            it('should throw an error', () => {
+              expect(() => {
+                const code = `
+                  var obj = {};
 
-                var mainProxyProxy = new Proxy(mainProxy, {});
-                var descProxyProxy = new Proxy(descProxy, {});
+                  Object.create(obj, new Proxy({}, {}));
+                `;
 
-                var newObject = Object.create(mainProxyProxy, descProxyProxy);
-
-                newObject.a + newObject.foo;
-              `;
-
-              const output = buildRun(code);
-
-              expect(output).to.equal((VALUE * modifier) + (VALUE + modifier));
+                buildRun(code);
+              }).to.throw('Cannot call Object.create with a proxy');
             });
           });
         });
@@ -2493,6 +2439,12 @@ describe('babel-plugin-es5-proxy @medium', () => {
       it('should stringify the object', () => {
         const code = `
           let obj = { foo: 'bar' };
+
+          Object.defineProperty(obj, 'mew', {
+            enumarable: false,
+            value: 5,
+          });
+
           JSON.stringify(obj)
         `;
         const output = buildRun(code);
@@ -2504,12 +2456,39 @@ describe('babel-plugin-es5-proxy @medium', () => {
     context('when stringifying a proxy', () => {
       it('should stringify the target', () => {
         const code = `
-          let obj = new Proxy({foo: 'bar'}, {});
-          JSON.stringify(obj)
+
+          var proxy = new Proxy({
+            foo: 'bar',
+            proxy: new Proxy({ a: 3 }, {
+              get(target, property) {
+                if (property === 'a') {
+                  return '6';
+                }
+
+                return target[property];
+              }
+            }),
+            b: 5,
+          }, {
+            get(target, property) {
+              if (property === 'foo') {
+                return 'baz';
+              }
+
+              return target[property];
+            }
+          });
+
+          Object.defineProperty(proxy, 'mew', {
+            enumarable: false,
+            value: 5,
+          });
+
+          JSON.stringify(new Proxy(proxy, {}))
         `;
         const output = buildRun(code);
 
-        expect(output).to.equal('{"foo":"bar"}');
+        expect(output).to.equal('{"foo":"baz","proxy":{"a":"6"},"b":5}');
       });
     });
   });
