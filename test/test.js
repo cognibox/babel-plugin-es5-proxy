@@ -2456,8 +2456,7 @@ describe('babel-plugin-es5-proxy @medium', () => {
     context('when stringifying a proxy', () => {
       it('should stringify the target', () => {
         const code = `
-
-          var proxy = new Proxy({
+          var obj = {
             foo: 'bar',
             proxy: new Proxy({ a: 3 }, {
               get(target, property) {
@@ -2469,7 +2468,16 @@ describe('babel-plugin-es5-proxy @medium', () => {
               }
             }),
             b: 5,
-          }, {
+          };
+
+          Object.defineProperty(obj, 'a', {
+            enumerable: false,
+            get() {
+              return 6;
+            }
+          });
+
+          var proxy = new Proxy(obj, {
             get(target, property) {
               if (property === 'foo') {
                 return 'baz';
