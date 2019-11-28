@@ -48,17 +48,25 @@ window.toStringBackup = window.toStringBackup || Function.prototype.toString;
   function buildObjectCreate() {
     var backup = Object.create;
 
-    function buildObject(obj) {
-      if (!isProxy(obj)) return obj;
-
-      return obj.formatTarget();
-    }
-
     buildNativeless(Object.create, function(proto, propertiesObject) {
-      var newProto = buildObject(proto);
-      var newPropertiesObject = buildObject(propertiesObject);
+      var argumentLength = arguments.length;
+      for (var i = 0; i < argumentLength; i++) {
+        if (isProxy(arguments[i])) {
+          /*
+            this is not implemented yet because of complexity.
+            example:
+              var obj = { a: 3 };
+              var proxyWithHandler = new Proxy(obj, { get(t, p) { return t[p]; } });
+              var proxyWithoutHandler = new Proxy(obj, {});
 
-      return backup.call(Object, newProto, newPropertiesObject);
+              Object.keys(Object.create(proxyWithHandler).__proto__).length === 0;
+              Object.keys(Object.create(proxyWithoutHandler).__proto__).length === 1;
+          */
+          throw TypeError('Cannot call Object.create with a proxy');
+        }
+      }
+
+      return backup.call(Object, proto, propertiesObject);
     });
   }
 
@@ -505,11 +513,14 @@ function formatTargetObject(obj, deep) {
   var keyLength = keys.length;
   for (var i = 0; i < keyLength; i++) {
     var key = keys[i];
-    var value = obj.get(key, obj);
-    if (deep) {
-      value = formatTargetObject(value, deep);
+    var descriptor = Object.getOwnPropertyDescriptor.__$nativeless$__.call(Object, obj, key);
+    descriptor.value = obj.get(key, obj);
+
+    if (deep && descriptor.value) {
+      descriptor.value = formatTargetObject(descriptor.value, deep);
     }
-    newObj[key] = value;
+
+    Object.defineProperty(newObj, key, descriptor);
   }
   return newObj;
 }
